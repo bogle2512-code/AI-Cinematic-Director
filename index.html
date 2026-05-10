@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Cinematic Workflow Director</title>
+<style>
+:root{--bg:#0f1117;--card:#181c25;--line:rgba(255,255,255,.14);--text:#f5f7fb;--muted:#aeb6c8;--blue:#00d4ff;--purple:#7c5cff}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#0f1117,#15192a);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif}
+header{padding:26px 16px 12px;text-align:center}
+h1{margin:0;font-size:clamp(26px,5vw,42px);letter-spacing:-.04em}
+.tabs{position:sticky;top:0;z-index:20;display:flex;gap:8px;overflow-x:auto;padding:10px;background:rgba(15,17,23,.94);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tabs button{white-space:nowrap;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;border-radius:999px;padding:9px 13px;font-weight:800;cursor:pointer}
+.tabs button.active{background:linear-gradient(135deg,var(--purple),var(--blue));border-color:transparent}
+.wrap{width:min(1100px,100%);margin:0 auto;padding:14px 12px 80px}
+.section{display:none}.section.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+h2{margin:0 0 12px;font-size:22px}
+label{display:block;margin:12px 0 6px;font-weight:800}
+input,textarea,select{width:100%;border:1px solid var(--line);background:#0b0e15;color:var(--text);border-radius:13px;padding:12px;font-size:15px}
+textarea{min-height:110px;resize:vertical;line-height:1.55}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+button.action{border:0;border-radius:13px;padding:10px 14px;color:white;font-weight:900;cursor:pointer;background:linear-gradient(135deg,var(--purple),var(--blue))}
+button.ghost{background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.output,.editable{width:100%;white-space:pre-wrap;background:#0b0e15;border:1px solid var(--line);border-radius:13px;padding:14px;line-height:1.6;color:#edf2ff}
+.editable{min-height:260px;resize:vertical}
+.cutGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.cutCard{border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.04);padding:12px}
+.cutCard h3{margin:0 0 8px;font-size:16px}
+.cutCard textarea{min-height:210px;font-size:13px}
+.notice{padding:12px;border-radius:13px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);color:#dff8ff;line-height:1.55}
+a{color:#7dd3fc;font-weight:800}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#111827;border:1px solid var(--line);padding:10px 15px;border-radius:999px;display:none}
+@media(max-width:820px){.grid{grid-template-columns:1fr}.card{padding:14px}.tabs button{font-size:12px;padding:8px 10px}}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:14px;
+  overflow:hidden;
+  border-radius:14px;
+}
+th,td{
+  border:1px solid rgba(255,255,255,.08);
+  padding:10px;
+  text-align:left;
+  font-size:14px;
+}
+th{
+  background:rgba(255,255,255,.08);
+  color:#fff;
+}
+tr:nth-child(even){
+  background:rgba(255,255,255,.03);
+}
+.storyCard{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:16px;
+  margin-top:14px;
+  background:rgba(255,255,255,.03);
+}
+.storyGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+.storyItem{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:12px;
+  background:rgba(255,255,255,.03);
+}
+.storyItem h4{
+  margin:0 0 8px;
+  font-size:15px;
+}
+
+
+.promptWorkspace{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  gap:14px;
+  min-height:720px;
+}
+.promptSidebar{
+  border-right:1px solid var(--line);
+  padding-right:12px;
+  max-height:760px;
+  overflow:auto;
+}
+.promptSearch{
+  margin-bottom:12px;
+}
+.promptListCard{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:10px;
+  background:rgba(255,255,255,.045);
+  cursor:pointer;
+}
+.promptListCard.active{
+  border-color:#6d5dfc;
+  background:rgba(109,93,252,.18);
+}
+.promptListCard small{
+  color:#60a5fa;
+  font-weight:900;
+  display:block;
+  margin-bottom:6px;
+}
+.promptListCard strong{
+  display:block;
+  margin-bottom:6px;
+}
+.promptListCard p{
+  color:var(--muted);
+  margin:0;
+  font-size:12px;
+  line-height:1.45;
+}
+.promptDetail{
+  background:rgba(255,255,255,.025);
+  border:1px solid var(--line);
+  border-radius:18px;
+  overflow:hidden;
+}
+.promptDetailHeader{
+  padding:18px;
+  border-bottom:1px solid var(--line);
+}
+.promptDetailHeader h2{
+  margin:0 0 8px;
+}
+.promptTags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.promptTag{
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(96,165,250,.16);
+  color:#dbeafe;
+  font-size:12px;
+  font-weight:800;
+}
+.promptEditorWrap{
+  padding:18px;
+}
+.promptEditorLabel{
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:12px;
+  margin-bottom:10px;
+  font-weight:800;
+}
+.promptEditor{
+  width:100%;
+  min-height:520px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#070a10;
+  color:#fff;
+  padding:18px;
+  line-height:1.65;
+  font-size:14px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+}
+.topPromptActions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-bottom:12px;
+}
+@media(max-width:900px){
+  .promptWorkspace{grid-template-columns:1fr}
+  .promptSidebar{border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:12px;max-height:340px}
+}
+
+
+.pg-app{
+  min-height:720px;
+  display:flex;
+  flex-direction:column;
+}
+.pg-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px 20px;
+  background:rgba(15,17,23,.82);
+  border:1px solid var(--line);
+  border-radius:18px 18px 0 0;
+}
+.pg-brand h2{
+  margin:0;
+  font-size:22px;
+  letter-spacing:-.5px;
+}
+.pg-brand span{
+  color:var(--muted);
+  font-size:13px;
+}
+.pg-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.pg-layout{
+  display:grid;
+  grid-template-columns:360px 1fr;
+  gap:18px;
+  min-height:650px;
+}
+.pg-sidebar,.pg-viewer{
+  background:rgba(23,27,36,.88);
+  border:1px solid var(--line);
+  overflow:hidden;
+}
+.pg-sidebar{
+  border-radius:0 0 0 18px;
+}
+.pg-viewer{
+  border-radius:0 0 18px 0;
+  display:flex;
+  flex-direction:column;
+}
+.pg-sidebar-head{
+  padding:18px;
+  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.02);
+}
+.pg-search{
+  width:100%;
+  padding:13px 14px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:#0c1018;
+  color:var(--text);
+  outline:none;
+  font-size:14px;
+}
+.pg-cut-list{
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height:620px;
+  overflow:auto;
+}
+.pg-cut-card{
+  padding:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.045);
+  border-radius:16px;
+  cursor:pointer;
+  transition:.18s ease;
+}
+.pg-cut-card:hover,.pg-cut-card.active{
+  border-color:rgba(94,161,255,.8);
+  box-shadow:0 0 0 1px rgba(94,161,255,.14),0 12px 34px rgba(94,161,255,.12);
+}
+.pg-cut-card.active{
+  background:linear-gradient(180deg,rgba(94,161,255,.14),rgba(29,34,48,1));
+}
+.pg-cut-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.pg-cut-num{
+  font-size:12px;
+  font-weight:900;
+  color:#5ea1ff;
+}
+.pg-badge{
+  font-size:11px;
+  color:var(--muted);
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  white-space:nowrap;
+}
+.pg-cut-title{
+  font-size:15px;
+  line-height:1.35;
+  font-weight:900;
+  margin-bottom:6px;
+}
+.pg-cut-desc{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.pg-viewer-head{
+  padding:22px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:flex-start;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);
+}
+.pg-viewer-title h2{
+  margin:0 0 8px;
+  font-size:25px;
+  letter-spacing:-.6px;
+}
+.pg-viewer-title p{
+  margin:0;
+  color:var(--muted);
+  line-height:1.55;
+  font-size:14px;
+}
+.pg-meta-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+.pg-meta{
+  padding:7px 10px;
+  border-radius:999px;
+  background:rgba(94,161,255,.1);
+  border:1px solid rgba(94,161,255,.18);
+  color:#cfe4ff;
+  font-size:12px;
+  font-weight:800;
+}
+.pg-prompt-area{
+  padding:22px;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.pg-prompt-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  color:var(--muted);
+  font-size:13px;
+}
+.pg-prompt-box{
+  flex:1;
+  min-height:520px;
+  width:100%;
+  resize:vertical;
+  padding:20px;
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:#090c12;
+  color:#f2f6ff;
+  outline:none;
+  font-family:"Consolas","JetBrains Mono",monospace;
+  font-size:14px;
+  line-height:1.85;
+}
+@media(max-width:900px){
+  .pg-topbar{align-items:flex-start;flex-direction:column}
+  .pg-actions{width:100%;justify-content:flex-start}
+  .pg-layout{grid-template-columns:1fr}
+  .pg-sidebar{border-radius:0}
+  .pg-viewer{border-radius:0 0 18px 18px}
+  .pg-cut-list{max-height:360px}
+  .pg-viewer-head{flex-direction:column}
+  .pg-prompt-box{min-height:420px}
+}
+
+
+/* Uploaded CUT Card UI style applied to image/video prompt lists */
+.promptSidebar,
+.pg-sidebar{
+  background:linear-gradient(180deg,#111827 0%,#070b14 100%) !important;
+}
+.promptSearch,
+.pg-search{
+  height:48px !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:16px !important;
+  background:#0b1020 !important;
+  color:#e5e7eb !important;
+  padding:0 16px !important;
+  font-size:14px !important;
+}
+.promptListCard,
+.pg-cut-card{
+  position:relative !important;
+  border-radius:20px !important;
+  padding:16px 16px 15px !important;
+  background:rgba(17,24,39,.92) !important;
+  border:1px solid rgba(255,255,255,.09) !important;
+  border-left:4px solid #3b82f6 !important;
+  box-shadow:0 12px 30px rgba(0,0,0,.25) !important;
+  overflow:hidden !important;
+  cursor:pointer !important;
+}
+.promptListCard::after,
+.pg-cut-card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle at top right,rgba(59,130,246,.12),transparent 42%);
+  pointer-events:none;
+}
+.promptListCard:hover,
+.promptListCard.active,
+.pg-cut-card:hover,
+.pg-cut-card.active{
+  border-color:rgba(94,161,255,.8) !important;
+  box-shadow:0 0 0 1px rgba(94,161,255,.14),0 12px 34px rgba(94,161,255,.12) !important;
+}
+.promptListCard.active,
+.pg-cut-card.active{
+  background:linear-gradient(180deg,rgba(94,161,255,.14),rgba(29,34,48,1)) !important;
+}
+.pg-cut-card.opening,
+.promptListCard.opening{border-left-color:#3b82f6 !important;}
+.pg-cut-card.development,
+.promptListCard.development{border-left-color:#8b5cf6 !important;}
+.pg-cut-card.emotion,
+.promptListCard.emotion{border-left-color:#f59e0b !important;}
+.pg-cut-card.climax,
+.promptListCard.climax{border-left-color:#ef4444 !important;}
+.pg-cut-card.ending,
+.promptListCard.ending{border-left-color:#10b981 !important;}
+.pg-cut-top,
+.promptCutTop{
+  position:relative;
+  z-index:1;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+.pg-cut-num,
+.promptCutNum{
+  font-size:12px;
+  font-weight:900;
+  color:#60a5fa;
+  letter-spacing:.08em;
+}
+.pg-badge,
+.promptCutPhase{
+  font-size:11px;
+  padding:5px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  color:#dbeafe;
+  border:1px solid rgba(255,255,255,.07);
+}
+.pg-cut-title,
+.promptCutTitle{
+  position:relative;
+  z-index:1;
+  margin:0 0 9px;
+  font-size:17px;
+  line-height:1.32;
+  font-weight:900;
+  color:#f8fafc;
+  word-break:keep-all;
+}
+.pg-cut-desc,
+.promptCutDesc{
+  position:relative;
+  z-index:1;
+  margin:0;
+  font-size:13px;
+  line-height:1.55;
+  color:#aab6cc;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.promptCutMeta{
+  position:relative;
+  z-index:1;
+  display:flex;
+  gap:7px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.promptMetaChip{
+  font-size:11px;
+  color:#93c5fd;
+  background:rgba(59,130,246,.1);
+  border:1px solid rgba(59,130,246,.16);
+  border-radius:999px;
+  padding:5px 8px;
+}
+
+</style>
+</head>
+<body>
+<header><h1>AI Cinematic Workflow Director</h1></header>
+<nav class="tabs">
+<button class="active" data-tab="input">입력</button><button data-tab="summary">전체 결과</button><button data-tab="characterSheet">전문캐릭터시트</button><button data-tab="storyboard">스토리보드</button><button data-tab="image">이미지 프롬프트</button><button data-tab="video">영상 프롬프트</button><button data-tab="suno">SUNO</button><button data-tab="quality">프롬프트 검사</button>
+</nav>
+<main class="wrap">
+<section class="section active" id="input"><div class="grid"><div class="card"><h2>입력</h2><div class="notice">GPT 바로가기: <a href="https://chatgpt.com/" target="_blank">https://chatgpt.com/</a></div>
+<label>간단 입력 / 자동 생성</label>
+<textarea id="autoInput" placeholder="예:\n숏폼드라마 제작할거야\n영상 길이는 3~5분\n시리즈형태로 제작해줘\n\n내용 : 풋풋한 연애 드라마\n20대 남자 와 여자"></textarea>
+<div class="btns">
+  <button class="action" onclick="autoFillFromSimpleInput()">간단 입력으로 자동 구성</button>
+</div>
+<label>GENRE</label><input id="genre" placeholder="예: 시네마틱 레이싱 필름 / 스포츠 드라마 / 미국 스타일 광고"><label>TITLE</label><input id="topic" placeholder="예: LAST LAP / 한계를 넘는 마지막 한 바퀴"><label>LOGLINE, SYNOPSIS</label><textarea id="background" placeholder="LOGLINE과 SYNOPSIS가 자동 또는 직접 작성됩니다."></textarea><label>분위기</label><textarea id="mood" placeholder="예: 웅장함, 스피드, 에너지, K-POP 뮤직비디오, 시네마틱 광고"></textarea></div><div class="card"><h2>제작 조건</h2><label>등장인물</label><textarea id="character" placeholder="예: 20대 한국 여성, 긴 흑발, 흰색 원피스, 따뜻한 눈빛, 여행룩"></textarea><label>러닝타임</label><input id="runtime" placeholder="예: 30초, 60초, 90초"><label>컷수</label><input id="cutCount" type="number" min="1" max="30" placeholder="러닝타임 입력 시 자동 계산"><div class="notice" style="margin-top:8px">러닝타임 입력 시 컷수가 자동 계산됩니다. 최대 5분까지 지원합니다. 예: 30초 → 6컷, 60초 → 10컷, 5분 → 30컷</div><label>스타일</label><textarea id="style" placeholder="예: cinematic commercial film, ultra realistic, K-POP MV aesthetic, Ratio"></textarea>
+<label>화면 비율</label>
+<select id="aspectRatio">
+  <option value="Ratio">9:16 세로 숏폼</option>
+  <option value="16:9 horizontal">16:9 가로 영상</option>
+</select>
+<div class="btns"><button class="action" onclick="generateAll()">전체 생성</button><button class="action ghost" onclick="saveInputs()">저장</button><button class="action ghost" onclick="clearInputs()">초기화</button></div></div></div></section>
+<section class="section" id="summary"><div class="card"><h2>전체 결과</h2><div class="btns"><button class="action ghost" onclick="copyText('summaryOut')">복사</button></div><div class="output" id="summaryOut"></div></div></section>
+<section class="section" id="characterSheet"><div class="card"><h2>전문캐릭터시트</h2><div class="btns"><button class="action ghost" onclick="copyText('characterOut')">복사</button></div><div class="output" id="characterOut"></div></div></section>
+<section class="section" id="storyboard"><div class="card"><h2>스토리보드</h2><div class="btns"><button class="action ghost" onclick="copyText('storyboardOut')">복사</button></div><div id="storyboardOut"></div></div></section>
+
+
+<section class="section" id="image">
+  <div class="pg-app">
+    <header class="pg-topbar">
+      <div class="pg-brand">
+        <h2>이미지 프롬프트</h2>
+        <span>컷별 프롬프트를 선택해서 확인하고 복사하는 작업 공간</span>
+      </div>
+      <div class="pg-actions">
+        <button class="action ghost" onclick="pgCopyAll('image')">전체 복사</button>
+        <button class="action ghost" onclick="pgDownloadTxt('image')">TXT 다운로드</button>
+        <button class="action" onclick="pgCopyCurrent('image')">현재 컷 복사</button>
+      </div>
+    </header>
+    <main class="pg-layout">
+      <aside class="pg-sidebar">
+        <div class="pg-sidebar-head">
+          <input class="pg-search" id="imagePgSearch" placeholder="CUT 검색... 예: 오프닝, 클라이맥스" oninput="pgRenderList('image')" />
+        </div>
+        <div class="pg-cut-list" id="imageCuts"></div>
+      </aside>
+      <section class="pg-viewer">
+        <div class="pg-viewer-head">
+          <div class="pg-viewer-title">
+            <h2 id="imageViewerTitle">CUT 선택</h2>
+            <p id="imageViewerDesc">왼쪽 컷을 선택하면 프롬프트가 표시됩니다.</p>
+            <div class="pg-meta-row">
+              <span class="pg-meta" id="imageMetaPhase">-</span>
+              <span class="pg-meta">Image Prompt</span>
+              <span class="pg-meta" id="imageMetaRatio">Ratio</span>
+            </div>
+          </div>
+          <button class="action" onclick="pgCopyCurrent('image')">이 컷 복사</button>
+        </div>
+        <div class="pg-prompt-area">
+          <div class="pg-prompt-toolbar">
+            <strong>Prompt Editor</strong>
+            <span>수정 후 바로 복사 가능</span>
+          </div>
+          <textarea class="pg-prompt-box" id="imagePromptBox"></textarea>
+          <textarea id="imageOut" style="display:none"></textarea>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+    </div>
+  </div>
+</section>
+
+
+
+<section class="section" id="video">
+  <div class="pg-app">
+    <header class="pg-topbar">
+      <div class="pg-brand">
+        <h2>영상 프롬프트</h2>
+        <span>컷별 프롬프트를 선택해서 확인하고 복사하는 작업 공간</span>
+      </div>
+      <div class="pg-actions">
+        <button class="action ghost" onclick="pgCopyAll('video')">전체 복사</button>
+        <button class="action ghost" onclick="pgDownloadTxt('video')">TXT 다운로드</button>
+        <button class="action" onclick="pgCopyCurrent('video')">현재 컷 복사</button>
+      </div>
+    </header>
+    <main class="pg-layout">
+      <aside class="pg-sidebar">
+        <div class="pg-sidebar-head">
+          <input class="pg-search" id="videoPgSearch" placeholder="CUT 검색... 예: 오프닝, 클라이맥스" oninput="pgRenderList('video')" />
+        </div>
+        <div class="pg-cut-list" id="videoCuts"></div>
+      </aside>
+      <section class="pg-viewer">
+        <div class="pg-viewer-head">
+          <div class="pg-viewer-title">
+            <h2 id="videoViewerTitle">CUT 선택</h2>
+            <p id="videoViewerDesc">왼쪽 컷을 선택하면 프롬프트가 표시됩니다.</p>
+            <div class="pg-meta-row">
+              <span class="pg-meta" id="videoMetaPhase">-</span>
+              <span class="pg-meta">Video Prompt</span>
+              <span class="pg-meta" id="videoMetaRatio">Ratio</span>
+            </div>
+          </div>
+          <button class="action" onclick="pgCopyCurrent('video')">이 컷 복사</button>
+        </div>
+        <div class="pg-prompt-area">
+          <div class="pg-prompt-toolbar">
+            <strong>Prompt Editor</strong>
+            <span>수정 후 바로 복사 가능</span>
+          </div>
+          <textarea class="pg-prompt-box" id="videoPromptBox"></textarea>
+          <textarea id="videoOut" style="display:none"></textarea>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+    </div>
+  </div>
+</section>
+
+<section class="section" id="suno"><div class="card"><h2>SUNO</h2><div class="notice">SUNO 바로가기: <a href="https://suno.com/discover" target="_blank">https://suno.com/discover</a></div><div class="btns"><button class="action ghost" onclick="copyText('sunoOut')">복사</button></div><div class="output" id="sunoOut"></div></div></section>
+
+<section class="section" id="quality">
+  <div class="card">
+    <h2>프롬프트 검사</h2>
+    <div class="notice">입력값과 생성된 프롬프트가 기본 제작 조건을 충족하는지 간단히 확인합니다. 완벽함을 보장하지는 않지만, 누락된 요소를 빠르게 점검할 수 있습니다.</div>
+    <div class="btns"><button class="action ghost" onclick="checkPromptQuality()">검사하기</button><button class="action ghost" onclick="copyText('qualityOut')">검사 결과 복사</button></div>
+    <div class="output" id="qualityOut"></div>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast">완료</div>
+<script>
+const $ = id => document.getElementById(id);
+const COMMON=`cinematic commercial film,
+ultra realistic,
+Kodak Portra 400 color grading,
+anamorphic lens,
+soft film grain,
+cinematic lighting,
+shallow depth of field,
+smooth camera movement,
+natural motion blur,
+premium advertisement style,
+4K quality`;
+document.querySelectorAll(".tabs button").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));btn.classList.add("active");$(btn.dataset.tab).classList.add("active")}));
+function data(){
+  const storyText = $("background").value.trim();
+  let scenes = storyText.replace(/\r/g,"").split("\n").map(v=>v.trim()).filter(Boolean);
+
+  if(scenes.length <= 8 && storyText.length > 80){
+    scenes = [
+      "오프닝 세계관 소개",
+      "주인공 첫 등장",
+      "목표 또는 관계의 시작",
+      "감정과 긴장감 상승",
+      "위기와 갈등",
+      "클라이맥스",
+      "결정적 순간",
+      "여운 있는 엔딩"
+    ];
+  }
+
+  let logline = "";
+  let synopsis = storyText;
+  const logMatch = storyText.match(/LOGLINE\s*([\s\S]*?)SYNOPSIS/i);
+  const synMatch = storyText.match(/SYNOPSIS\s*([\s\S]*)/i);
+  if(logMatch) logline = logMatch[1].trim();
+  if(synMatch) synopsis = synMatch[1].trim();
+
+  const selectedRatio = $("aspectRatio") ? $("aspectRatio").value : "9:16 vertical";
+
+  return {
+    genre:$("genre").value.trim()||"cinematic video",
+    topic:$("topic").value.trim()||"untitled project",
+    scenes:scenes.length?scenes:["main scene"],
+    logline:logline || "입력한 이야기를 한 문장으로 압축한 로그라인이 생성됩니다.",
+    synopsis:synopsis || "시놉시스 없음",
+    mood:$("mood").value.trim()||"cinematic mood",
+    character:$("character").value.trim()||"main character",
+    runtime:$("runtime").value.trim()||"60 seconds",
+    cutCount:Math.max(1,Number($("cutCount").value||scenes.length||5)),
+    style:$("style").value.trim()||"cinematic style",
+    aspectRatio:selectedRatio
+  }
+}
+function phase(i,total){const r=i/total;if(r<.2)return"오프닝";if(r<.45)return"전개";if(r<.65)return"감정 장면";if(r<.85)return"클라이맥스";return"엔딩"}
+function action(p,scene){return{"오프닝":`cinematic opening reveal of ${scene}`,"전개":`main character moves through ${scene}`,"감정 장면":`emotional close-up inside ${scene}`,"클라이맥스":`powerful hero moment in ${scene}`,"엔딩":`final emotional frame in ${scene}`}[p]||`cinematic scene in ${scene}`}
+function camera(p){return{"오프닝":"drone reveal, wide shot","전개":"smooth tracking shot","감정 장면":"slow push-in, close-up","클라이맥스":"speed ramp, orbit movement","엔딩":"slow pull-out, final wide shot"}[p]||"smooth camera movement"}
+function makePlan(d){return Array.from({length:d.cutCount},(_,i)=>{const p=phase(i,d.cutCount),scene=d.scenes[i%d.scenes.length];return{no:i+1,phase:p,scene,title:`${scene} / ${p}`,action:action(p,scene),camera:camera(p)}})}
+
+
+
+
+
+
+
+function detectBackground(text){
+  if(text.includes("연애") || text.includes("드라마")){
+    return [
+      "서울 저녁 거리",
+      "카페 첫 만남",
+      "지하철 재회",
+      "함께 걷는 골목길",
+      "한강 야경 데이트",
+      "비 오는 우산 장면",
+      "서로 멀어지는 밤",
+      "진심을 확인하는 엔딩"
+    ].join("\\n");
+  }
+  if(text.includes("관광") || text.includes("여행")){
+    return [
+      "전체 드론 오프닝",
+      "대표 장소 첫 방문",
+      "인물 이동 장면",
+      "핵심 명소 감상",
+      "감정 클로즈업",
+      "야경 또는 노을 장면",
+      "엔딩 와이드샷"
+    ].join("\\n");
+  }
+  return [
+    "오프닝 리빌",
+    "주요 인물 등장",
+    "핵심 상황 전개",
+    "감정 변화 장면",
+    "클라이맥스",
+    "엔딩 장면"
+  ].join("\\n");
+}
+
+
+
+
+function getAutoText(){
+  return ($("autoInput") ? $("autoInput").value.trim() : "");
+}
+
+function extractRuntimeFromText(text){
+  const rangeMin = text.match(/(\d+)\s*~\s*(\d+)\s*분/);
+  if(rangeMin) return `${rangeMin[1]}~${rangeMin[2]}분`;
+
+  const min = text.match(/(\d+)\s*분/);
+  if(min) return `${min[1]}분`;
+
+  const sec = text.match(/(\d+)\s*초/);
+  if(sec) return `${sec[1]}초`;
+
+  if(text.includes("시리즈")) return "3~5분";
+  return "60초";
+}
+
+function estimateCutsFromRuntimeText(runtime){
+  const nums = String(runtime).match(/\d+/g);
+  if(!nums) return 8;
+  const maxVal = Number(nums[nums.length - 1]);
+  const isMinute = String(runtime).includes("분");
+  const seconds = isMinute ? maxVal * 60 : maxVal;
+
+  if(seconds <= 15) return 4;
+  if(seconds <= 30) return 6;
+  if(seconds <= 60) return 10;
+  if(seconds <= 90) return 12;
+  if(seconds <= 120) return 16;
+  if(seconds <= 180) return 22;
+  if(seconds <= 240) return 26;
+  return 30;
+}
+
+function extractContentAfterKeyword(text){
+  const m = text.match(/내용\s*[:：]\s*([\s\S]+)/);
+  if(m) return m[1].trim();
+  return text.trim();
+}
+
+function detectGenre(text){
+  const lower = text.toLowerCase();
+  if(text.includes("F1") || text.includes("레이싱") || text.includes("서킷")) return "시네마틱 레이싱 필름 / 스포츠 드라마 / 미국 스타일 액션 필름";
+  if(text.includes("숏폼") && text.includes("드라마")) return "숏폼 드라마 / 감성 드라마 / 시리즈";
+  if(text.includes("드라마")) return "드라마 / 감성 시리즈 / 현실 이야기";
+  if(text.includes("광고")) return "광고 / 브랜드 필름 / 숏폼";
+  if(text.includes("여행") || text.includes("관광")) return "관광 홍보 / 여행 브이로그 / 숏폼";
+  if(text.includes("애니")) return "애니메이션 / AI 영상";
+  if(text.includes("뮤직") || text.includes("K-POP") || lower.includes("mv")) return "K-POP MV / 감성 숏폼";
+  return "시네마틱 영상 / AI 영상 / 숏폼";
+}
+
+function detectTopic(text){
+  if(text.includes("F1") || text.includes("레이싱") || text.includes("서킷")) return "LAST LAP";
+  if(text.includes("연애") || text.includes("로맨스")) return "우리의 프레임 (OUR FRAME)";
+  if(text.includes("관광") || text.includes("여행")) return "빛을 따라 걷다";
+  if(text.includes("광고")) return "THE MOMENT";
+  return "CINEMATIC STORY";
+}
+
+function detectCharacter(text){
+  const age = text.includes("20대") ? "20대" : "젊은";
+  const hasMan = text.includes("남자") || text.includes("남성");
+  const hasWoman = text.includes("여자") || text.includes("여성");
+
+  if(hasMan && hasWoman) {
+    return `${age} 한국 남자 주인공과 ${age} 한국 여자 주인공, 풋풋한 감정선, 현실적인 생활 연기, 자연스러운 데이트룩, 같은 얼굴과 캐릭터 일관성`;
+  }
+  if(hasMan) return `${age} 한국 남자 주인공, 자연스러운 스타일, 감정적인 눈빛, 같은 얼굴과 캐릭터 일관성`;
+  if(hasWoman) return `${age} 한국 여자 주인공, 자연스러운 스타일, 따뜻한 눈빛, 같은 얼굴과 캐릭터 일관성`;
+  return "주요 인물, 현실적인 외형, 감정적인 눈빛, 같은 캐릭터 일관성";
+}
+
+function detectMood(text){
+  if(text.includes("연애") || text.includes("로맨스") || text.includes("풋풋")) {
+    return "풋풋함, 설렘, 현실 연애 감성, 따뜻한 필름톤, 감정 중심, 청춘 드라마 분위기";
+  }
+  if(text.includes("웅장")) return "웅장함, 스피드, 에너지, 시네마틱 광고톤";
+  if(text.includes("감성")) return "감성적, 따뜻함, 잔잔한 여운, 필름톤";
+  return "시네마틱, 감정 중심, 자연광, 현실적인 분위기";
+}
+
+
+function makeDetailedLogline(text){
+  if(text.includes("F1") || text.includes("레이싱") || text.includes("서킷")){
+    return `한계를 넘는 마지막 한 바퀴.
+폭우 직전의 서킷 위에서 젊은 F1 드라이버는 자신의 공포와 맞서며 인생 최고의 레이스를 완성한다.`;
+  }
+
+  if(text.includes("연애") || text.includes("로맨스") || text.includes("풋풋")){
+    return `서로 다른 상처와 외로움을 가진 20대 남녀가 우연한 만남을 통해 가까워지고,
+작은 일상 속에서 천천히 사랑을 배워가는 감성 숏폼 드라마 시리즈.`;
+  }
+
+  const content = extractContentAfterKeyword(text);
+  return `${content || "한 인물이 자신의 한계를 넘어서는 이야기."}
+입력한 주제와 분위기를 중심으로 감정, 갈등, 클라이맥스를 가진 시네마틱 영상으로 완성된다.`;
+}
+
+function makeSimpleSynopsis(text){
+  if(text.includes("F1") || text.includes("레이싱") || text.includes("서킷")){
+    return `미국 네바다 사막 한가운데 위치한 초대형 F1 서킷.
+석양이 붉게 물드는 순간, 세계 최고의 드라이버들이 시즌 챔피언 자리를 두고 마지막 결승 레이스를 시작한다.
+
+주인공 “에단 콜”은 불안정한 차량 상태와 극한의 압박 속에서도 끝까지 포기하지 않는다.
+엔진은 한계에 도달하고 타이어는 갈려나가지만, 그는 마지막 랩에서 모든 것을 건다.
+
+관중들의 함성, 피트팀의 긴장감, 헬멧 안의 거친 숨소리.
+그리고 시속 350km를 넘나드는 머신.
+
+FPV 드론은 머신 사이를 미친 속도로 파고들고, 초고속 슬로우모션 카메라는 불꽃 튀는 타이어와 드라이버의 눈빛을 포착한다.
+
+마지막 코너.
+아웃라인 바깥까지 밀어붙인 드리프트.
+0.2초 차이의 역전.
+
+체커 플래그가 휘날리는 순간, 엔진 사운드는 음악처럼 폭발하고
+에단은 미국 밤하늘 아래 챔피언이 된다.
+
+이 작품은 단순한 레이싱 영상이 아니라
+“속도에 인생을 거는 사람들”의 감정을 담은 미국 스타일 시네마틱 레이싱 필름이다.`;
+  }
+
+  if(text.includes("연애") || text.includes("로맨스") || text.includes("풋풋")) {
+    return `서울의 바쁜 일상 속.
+영상 촬영 아르바이트를 하는 남자 “도윤”은 사람들 사이에 있어도 늘 혼자다.
+
+카페에서 우연히 만난 여자 “서아”.
+필름카메라를 좋아하고, 순간을 기록하는 것을 좋아하는 그녀는
+도윤의 무표정한 얼굴 속 외로움을 발견한다.
+
+둘은 우연처럼 반복해서 만나게 되고
+함께 사진을 찍고, 밥을 먹고, 밤 산책을 하며
+조금씩 서로의 하루에 스며든다.
+
+하지만 사랑은 항상 타이밍의 문제.
+
+서로 좋아하지만 쉽게 표현하지 못하는 두 사람은
+작은 오해와 엇갈림 속에서 멀어질 위기를 맞는다.
+
+그리고 결국.
+서로의 진심을 확인하게 되는 순간.
+
+“좋아한다는 건…
+누군가의 하루가 계속 신경 쓰이는 거더라.”
+
+풋풋하고 현실적인 연애 감성을 담은
+시네마틱 숏폼 드라마 시리즈.`;
+  }
+
+  const content = extractContentAfterKeyword(text);
+  return `${content}
+
+입력한 내용을 바탕으로 하나의 시네마틱 영상 시놉시스를 구성한다.
+초반에는 강한 오프닝으로 세계관과 인물을 보여주고,
+중반에는 인물의 목표와 갈등을 구체적으로 확장한다.
+후반에는 가장 강한 감정적 또는 시각적 클라이맥스를 만들고,
+마지막에는 여운 있는 엔딩으로 메시지를 완성한다.`;
+}
+
+function detectStyle(text){
+  if(text.includes("드라마")) return "Netflix youth drama style, Kodak Portra 400, warm film tone, handheld emotional realism, shallow depth of field";
+  if(text.includes("K-POP") || text.includes("뮤직")) return "K-POP MV aesthetic, cinematic commercial film, dynamic camera movement, glossy color grading";
+  if(text.includes("광고")) return "premium commercial film, clean product visuals, cinematic lighting, high-end advertisement style";
+  return "cinematic commercial film, ultra realistic, Kodak Portra 400 color grading, Ratio";
+}
+
+function autoFillFromSimpleInput(){
+  const text = getAutoText();
+  if(!text){
+    toast("간단 입력 내용을 작성해주세요");
+    return;
+  }
+
+  const runtime = extractRuntimeFromText(text);
+  const title = detectTopic(text);
+  const genre = detectGenre(text);
+  const logline = makeDetailedLogline(text);
+  const synopsis = makeSimpleSynopsis(text);
+
+  $("topic").value = title;
+  $("genre").value = genre;
+  $("background").value = `LOGLINE
+
+${logline}
+
+SYNOPSIS
+
+${synopsis}`;
+  $("mood").value = detectMood(text);
+  $("character").value = detectCharacter(text);
+  $("runtime").value = runtime;
+  $("cutCount").value = estimateCutsFromRuntimeText(runtime);
+  $("style").value = detectStyle(text);
+
+  generateAll();
+  toast("자동 구성 완료");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+let promptStore = { image: [], video: [] };
+let selectedPromptIndex = { image: 0, video: 0 };
+
+function renderPromptWorkspace(type, plan, promptMap){
+  const container = $(type + "Cuts");
+  const out = $(type + "Out");
+  const ratioTag = $(type + "RatioTag");
+  const d = data();
+
+  if(!Array.isArray(plan) || !plan.length){
+    plan = makePlan(d);
+  }
+
+  promptStore[type] = plan.map((c,index)=>({
+    no:c.no,
+    title:`CUT ${c.no} — ${c.title || c.scene || "Scene"}`,
+    desc:c.action || c.scene || "프롬프트 설명",
+    phase:c.phase || "",
+    prompt:promptMap && promptMap[c.no] ? promptMap[c.no] : makeFallbackPrompt(type,c,d)
+  }));
+
+  if(out) out.value = promptStore[type].map(item=>item.prompt).join("\n\n");
+  if(ratioTag) ratioTag.textContent = d.aspectRatio || "aspect ratio";
+
+  selectedPromptIndex[type] = 0;
+  renderPromptList(type);
+  selectPromptCut(type,0);
+}
+
+function makeFallbackPrompt(type,c,d){
+  if(type === "video"){
+    return `CUT ${c.no} — ${c.title || c.scene}
+
+${COMMON},
+
+${d.character},
+
+${c.action},
+camera movement: ${c.camera},
+cinematic motion,
+${d.mood},
+${d.style},
+${ratioPrompt},
+natural motion blur,
+smooth cinematic focus pull,
+4K quality`;
+  }
+
+  return `CUT ${c.no} — ${c.title || c.scene}
+
+${COMMON},
+
+${d.character},
+
+${c.action},
+${d.mood},
+${d.style},
+${ratioPrompt},
+unique scene composition for cut ${c.no},
+ultra detailed,
+cinematic composition,
+realistic lighting,
+no text,
+no logo,
+no watermark`;
+}
+
+function renderPromptList(type){
+  const container = $(type + "Cuts");
+  if(!container) return;
+  container.innerHTML = "";
+
+  const search = $(type + "Search");
+  const keyword = (search ? search.value : "").trim().toLowerCase();
+
+  promptStore[type].forEach((item,index)=>{
+    const haystack = `${item.title} ${item.desc} ${item.phase} ${item.prompt}`.toLowerCase();
+    if(keyword && !haystack.includes(keyword)) return;
+
+    const phaseClass = getCutPhaseClass(item.phase);
+    const card = document.createElement("div");
+    card.className = "promptListCard " + phaseClass + (index === selectedPromptIndex[type] ? " active" : "");
+    card.onclick = () => selectPromptCut(type,index);
+    card.innerHTML = `
+      <div class="promptCutTop">
+        <span class="promptCutNum">CUT ${escapeHtml(item.no)}</span>
+        <span class="promptCutPhase">${escapeHtml(item.phase)}</span>
+      </div>
+      <div class="promptCutTitle">${escapeHtml(item.title.replace(/^CUT \d+ — /,""))}</div>
+      <p class="promptCutDesc">${escapeHtml(item.desc)}</p>
+      <div class="promptCutMeta">
+        <span class="promptMetaChip">${escapeHtml((typeof data === "function" ? data().aspectRatio : "ratio") || "ratio")}</span>
+        <span class="promptMetaChip">${type === "image" ? "single frame" : "cinematic motion"}</span>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function selectPromptCut(type,index){
+  const item = promptStore[type][index];
+  if(!item) return;
+
+  selectedPromptIndex[type] = index;
+
+  const title = $(type + "DetailTitle");
+  const desc = $(type + "DetailDesc");
+  const editor = $(type + "CurrentPrompt");
+
+  if(title) title.textContent = item.title;
+  if(desc) desc.textContent = item.desc;
+  if(editor) editor.value = item.prompt;
+
+  renderPromptList(type);
+}
+
+function filterPromptList(type){
+  renderPromptList(type);
+}
+
+function copyCurrentPrompt(type){
+  const editor = $(type + "CurrentPrompt");
+  if(!editor) return;
+  navigator.clipboard.writeText(editor.value || "").then(()=>toast("현재 컷 복사 완료"));
+}
+
+function copyAllPromptCards(type){
+  const editor = $(type + "CurrentPrompt");
+  const currentIndex = selectedPromptIndex[type];
+
+  const text = promptStore[type].map((item,index)=>{
+    if(editor && index === currentIndex) return editor.value;
+    return item.prompt;
+  }).join("\n\n");
+
+  navigator.clipboard.writeText(text || "").then(()=>toast("전체 복사 완료"));
+}
+
+function downloadPromptText(type){
+  const text = promptStore[type].map(item=>item.prompt).join("\n\n");
+  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = type === "image" ? "image_prompts.txt" : "video_prompts.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+
+
+
+
+
+
+async function pgCopyText(){}
+
+
+
+
+
+let pgStore = { image: [], video: [] };
+let pgSelected = { image: 0, video: 0 };
+
+function safeText(value){
+  return String(value == null ? "" : value);
+}
+
+function pgEscape(text){
+  return safeText(text)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+function pgSetPrompts(type, items){
+  const list = $(type + "Cuts");
+  const out = $(type + "Out");
+  const box = $(type + "PromptBox");
+  const ratio = $(type + "MetaRatio");
+
+  pgStore[type] = Array.isArray(items) ? items : [];
+  pgSelected[type] = 0;
+
+  if(out){
+    const title = type === "image" ? "IMAGE PROMPTS" : "VIDEO PROMPTS";
+    out.value = title + "\n\n" + pgStore[type].map(c=>c.prompt).join("\n\n------------------------------\n\n");
+  }
+
+  const d = typeof data === "function" ? data() : { aspectRatio: "9:16 vertical" };
+  if(ratio) ratio.textContent = d.aspectRatio || "aspect ratio";
+
+  pgRenderList(type);
+
+  if(pgStore[type].length){
+    pgSelectCut(type,0);
+  }else{
+    if(box) box.value = "";
+    const title = $(type + "ViewerTitle");
+    const desc = $(type + "ViewerDesc");
+    const phase = $(type + "MetaPhase");
+    if(title) title.textContent = "CUT 없음";
+    if(desc) desc.textContent = "생성된 프롬프트가 없습니다. 입력 후 전체 생성을 눌러주세요.";
+    if(phase) phase.textContent = "-";
+  }
+}
+
+function pgRenderList(type){
+  const list = $(type + "Cuts");
+  if(!list) return;
+
+  const search = $(type + "PgSearch");
+  const q = search ? search.value.toLowerCase() : "";
+  list.innerHTML = "";
+
+  pgStore[type].forEach((cut,index)=>{
+    const target = `${cut.num} ${cut.title} ${cut.phase} ${cut.desc} ${cut.prompt}`.toLowerCase();
+    if(q && !target.includes(q)) return;
+
+    const phaseClass = getCutPhaseClass(cut.phase);
+    const card = document.createElement("div");
+    card.className = "pg-cut-card " + phaseClass + (index === pgSelected[type] ? " active" : "");
+    card.onclick = () => pgSelectCut(type,index);
+    card.innerHTML = `
+      <div class="pg-cut-top">
+        <span class="pg-cut-num">CUT ${pgEscape(cut.num)}</span>
+        <span class="pg-badge">${pgEscape(cut.phase)}</span>
+      </div>
+      <div class="pg-cut-title">${pgEscape(cut.title)}</div>
+      <div class="pg-cut-desc">${pgEscape(cut.desc)}</div>
+      <div class="promptCutMeta">
+        <span class="promptMetaChip">${pgEscape((typeof data === "function" ? data().aspectRatio : "ratio") || "ratio")}</span>
+        <span class="promptMetaChip">${type === "image" ? "single frame" : "cinematic motion"}</span>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function pgSelectCut(type,index){
+  const cut = pgStore[type][index];
+  if(!cut) return;
+
+  pgSelected[type] = index;
+
+  const title = $(type + "ViewerTitle");
+  const desc = $(type + "ViewerDesc");
+  const phase = $(type + "MetaPhase");
+  const box = $(type + "PromptBox");
+
+  if(title) title.textContent = `CUT ${cut.num} — ${cut.title}`;
+  if(desc) desc.textContent = cut.desc;
+  if(phase) phase.textContent = cut.phase;
+  if(box) box.value = cut.prompt;
+
+  pgRenderList(type);
+}
+
+function pgCopyCurrent(type){
+  const box = $(type + "PromptBox");
+  const text = box ? box.value : "";
+  navigator.clipboard.writeText(text).then(()=>toast("현재 컷 복사 완료"));
+}
+
+function pgCopyAll(type){
+  const out = $(type + "Out");
+  let all = "";
+
+  if(out && out.value && out.value.trim()){
+    all = out.value;
+  }else if(pgStore[type] && pgStore[type].length){
+    all = pgStore[type].map(c => c.prompt).join("\n\n------------------------------\n\n");
+  }
+
+  navigator.clipboard.writeText(all || "").then(()=>toast("전체 프롬프트 복사 완료"));
+}
+
+function pgDownloadTxt(type){
+  const all = pgStore[type].map(c => c.prompt).join("\\n\\n------------------------------\\n\\n");
+  const blob = new Blob([all], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = type === "image" ? "image-prompts.txt" : "video-prompts.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+
+function detectStoryType(d){
+  const all = `${d.topic} ${d.genre} ${d.synopsis} ${d.logline} ${d.mood}`.toLowerCase();
+  if(all.includes("f1") || all.includes("레이싱") || all.includes("서킷") || all.includes("드라이버")) return "racing";
+  if(all.includes("연애") || all.includes("로맨스") || all.includes("카페") || all.includes("20대 남자")) return "romance";
+  return "generic";
+}
+
+function getRichStoryboardRows(d){
+  const type = detectStoryType(d);
+
+  if(type === "racing"){
+    return [
+      {cut:1, scene:"미국 사막 서킷 오프닝", camera:"드론 와이드", emotion:"압도감"},
+      {cut:2, scene:"머신 엔진 점화", camera:"매크로 클로즈업", emotion:"긴장"},
+      {cut:3, scene:"헬멧 착용", camera:"슬로우 푸쉬인", emotion:"집중"},
+      {cut:4, scene:"스타트 라인 대기", camera:"FPV 오비트", emotion:"숨막힘"},
+      {cut:5, scene:"레이스 시작", camera:"초고속 트래킹", emotion:"폭발"},
+      {cut:6, scene:"차량 간 추월", camera:"FPV 드론 체이스", emotion:"스릴"},
+      {cut:7, scene:"타이어 스파크", camera:"1000fps 슬로우모션", emotion:"위험"},
+      {cut:8, scene:"피트스탑", camera:"핸드헬드", emotion:"긴박함"},
+      {cut:9, scene:"마지막 랩 진입", camera:"헬리 드론", emotion:"극한"},
+      {cut:10, scene:"최종 코너 드리프트", camera:"로우앵글", emotion:"절정"},
+      {cut:11, scene:"체커 플래그", camera:"크레인 업", emotion:"해방감"},
+      {cut:12, scene:"우승 세리머니", camera:"360 오비트 드론", emotion:"감동"}
+    ];
+  }
+
+  if(type === "romance"){
+    return [
+      {cut:1, scene:"서울 저녁 거리", camera:"Drone Wide", emotion:"외로움"},
+      {cut:2, scene:"카페 창가 도윤", camera:"Slow Push In", emotion:"공허함"},
+      {cut:3, scene:"서아 입장", camera:"Handheld Follow", emotion:"첫 인상"},
+      {cut:4, scene:"카메라 떨어짐", camera:"Quick Tilt Down", emotion:"당황"},
+      {cut:5, scene:"도윤이 카메라 주움", camera:"Medium Close", emotion:"어색함"},
+      {cut:6, scene:"첫 눈 마주침", camera:"Extreme Close Up", emotion:"설렘"},
+      {cut:7, scene:"함께 웃음", camera:"Orbit Shot", emotion:"따뜻함"},
+      {cut:8, scene:"각자 헤어짐", camera:"Pull Back", emotion:"아쉬움"},
+      {cut:9, scene:"뒤돌아보는 서아", camera:"Slow Motion", emotion:"궁금함"},
+      {cut:10, scene:"엔딩 서울 야경", camera:"Drone Out", emotion:"기대감"}
+    ];
+  }
+
+  const baseScenes = d.scenes && d.scenes.length ? d.scenes : ["오프닝", "주인공 등장", "전개", "위기", "클라이맥스", "엔딩"];
+  return baseScenes.map((scene,i)=>({
+    cut:i+1,
+    scene,
+    camera:["Drone Wide","Slow Push In","Tracking Shot","Close Up","Orbit Shot","Pull Back"][i%6],
+    emotion:["오프닝","전개","긴장","감정","클라이맥스","여운"][i%6]
+  }));
+}
+
+function getOnePageStoryboardItems(d,rows){
+  const type = detectStoryType(d);
+
+  if(type === "racing"){
+    return [
+      "사막 서킷 전경",
+      "F1 머신 FPV 추격 장면",
+      "초고속 타이어 클로즈업",
+      "드라이버 눈빛 매크로샷",
+      "피트스탑",
+      "체커 플래그",
+      "우승 세리머니",
+      "미국 석양 색감 흐름",
+      "붉은 네온 계열 컬러 무드",
+      "영화 포스터 스타일 레이아웃"
+    ];
+  }
+
+  if(type === "romance"){
+    return [
+      "카페 첫 만남",
+      "지하철 재회",
+      "한강 야경",
+      "비 오는 우산씬",
+      "사진 촬영 장면",
+      "감정 클로즈업",
+      "마지막 손잡는 장면",
+      "따뜻한 필름톤",
+      "Netflix 로맨스 드라마 레이아웃",
+      "시네마틱 감정 흐름"
+    ];
+  }
+
+  return rows.map(r=>r.scene);
+}
+
+function getShotListRows(d,rows){
+  const type = detectStoryType(d);
+
+  if(type === "racing"){
+    return [
+      {cut:1, size:"Extreme Wide", move:"Drone Reveal", lens:"18mm", fps:"24fps", length:"4s"},
+      {cut:2, size:"Macro CU", move:"Push In", lens:"85mm", fps:"120fps", length:"3s"},
+      {cut:3, size:"Close Up", move:"Slow Dolly", lens:"50mm", fps:"60fps", length:"4s"},
+      {cut:4, size:"Wide", move:"FPV Orbit", lens:"24mm", fps:"60fps", length:"5s"},
+      {cut:5, size:"Tracking", move:"FPV Chase", lens:"16mm", fps:"120fps", length:"5s"},
+      {cut:6, size:"Low Angle", move:"Side Tracking", lens:"35mm", fps:"120fps", length:"4s"},
+      {cut:7, size:"Macro Slow Motion", move:"Phantom Shot", lens:"100mm", fps:"1000fps", length:"3s"},
+      {cut:8, size:"Medium", move:"Handheld Run", lens:"35mm", fps:"60fps", length:"4s"},
+      {cut:9, size:"Aerial", move:"Helicopter Follow", lens:"24mm", fps:"60fps", length:"5s"},
+      {cut:10, size:"Extreme Low", move:"Drift Follow", lens:"18mm", fps:"240fps", length:"5s"},
+      {cut:11, size:"Wide Hero Shot", move:"Crane Up", lens:"35mm", fps:"60fps", length:"4s"},
+      {cut:12, size:"Hero Orbit", move:"360 FPV Drone", lens:"24mm", fps:"60fps", length:"5s"}
+    ];
+  }
+
+  if(type === "romance"){
+    return [
+      {cut:1, size:"Wide Shot", move:"Drone In", lens:"24mm", fps:"60fps", length:"5s"},
+      {cut:2, size:"Medium Shot", move:"Push In", lens:"50mm", fps:"24fps", length:"6s"},
+      {cut:3, size:"Close Up", move:"Handheld Follow", lens:"85mm", fps:"60fps", length:"4s"},
+      {cut:4, size:"Extreme CU", move:"Slow Dolly", lens:"135mm", fps:"120fps", length:"3s"},
+      {cut:5, size:"Two Shot", move:"Orbit Move", lens:"35mm", fps:"60fps", length:"7s"},
+      {cut:6, size:"Wide Shot", move:"Pull Out", lens:"24mm", fps:"24fps", length:"5s"}
+    ];
+  }
+
+  return rows.map((r,i)=>({
+    cut:r.cut,
+    size:i < 2 ? "Wide Shot" : i < 4 ? "Medium Shot" : "Close Up",
+    move:r.camera,
+    lens:i % 2 === 0 ? "24mm" : "35mm",
+    fps:i % 3 === 0 ? "120fps" : "60fps",
+    length:"4s"
+  }));
+}
+
+function renderRichStoryboard(d){
+  const rows = getRichStoryboardRows(d);
+  const onePage = getOnePageStoryboardItems(d,rows);
+  const shotRows = getShotListRows(d,rows);
+
+  return `
+<div class="storyCard">
+  <h2>STORYBOARD</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>컷</th>
+        <th>장면</th>
+        <th>카메라</th>
+        <th>감정</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(r=>`
+      <tr>
+        <td>${r.cut}</td>
+        <td>${r.scene}</td>
+        <td>${r.camera}</td>
+        <td>${r.emotion}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table>
+</div>
+
+<div class="storyCard">
+  <h2>ONE PAGE STORYBOARD</h2>
+  <p style="color:var(--muted);line-height:1.6;margin-top:0">하나의 대형 시네마틱 보드 안에 아래 요소 포함:</p>
+  <div class="storyGrid">
+    ${onePage.map((item,i)=>`
+      <div class="storyItem">
+        <h4>${i+1}</h4>
+        <div>${item}</div>
+      </div>
+    `).join("")}
+  </div>
+</div>
+
+<div class="storyCard">
+  <h2>SHOT LIST</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>컷</th>
+        <th>샷사이즈</th>
+        <th>카메라무브</th>
+        <th>렌즈</th>
+        <th>FPS</th>
+        <th>길이</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${shotRows.map(r=>`
+      <tr>
+        <td>${r.cut}</td>
+        <td>${r.size}</td>
+        <td>${r.move}</td>
+        <td>${r.lens}</td>
+        <td>${r.fps}</td>
+        <td>${r.length}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table>
+</div>`;
+}
+
+
+function getStrictRatioPrompt(d){
+  const ratio = String(d.aspectRatio || "").toLowerCase();
+
+  if(ratio.includes("16:9")){
+    return `aspect ratio: 16:9 horizontal,
+strict 16:9 landscape frame,
+all cuts must use the same 16:9 canvas size,
+consistent wide cinematic composition,
+no vertical crop,
+no mixed aspect ratios,
+no collage layout,
+single full-frame image`;
+  }
+
+  return `aspect ratio: 9:16 vertical,
+strict 9:16 vertical frame,
+all cuts must use the same 9:16 canvas size,
+consistent vertical cinematic composition,
+no horizontal crop,
+no mixed aspect ratios,
+no collage layout,
+single full-frame image`;
+}
+
+
+function getCutPhaseClass(phase){
+  const p = String(phase || "").toLowerCase();
+  if(p.includes("오프닝") || p.includes("opening")) return "opening";
+  if(p.includes("전개") || p.includes("development")) return "development";
+  if(p.includes("감정") || p.includes("emotion")) return "emotion";
+  if(p.includes("클라이맥스") || p.includes("climax")) return "climax";
+  if(p.includes("엔딩") || p.includes("ending")) return "ending";
+  return "opening";
+}
+
+function generateAll(){
+  try{
+    const d = data();
+    const plan = makePlan(d);
+    const ratioPrompt = getStrictRatioPrompt(d);
+
+    if($("summaryOut")){
+      $("summaryOut").textContent =
+`1. TITLE
+
+〈${d.topic}〉
+
+2. GENRE
+
+${d.genre}
+
+SCREEN RATIO
+
+${d.aspectRatio}
+
+3. LOGLINE
+
+${d.logline}
+
+4. SYNOPSIS
+
+${d.synopsis}`;
+    }
+
+    if($("characterOut")){
+      $("characterOut").textContent =
+`CHARACTER SHEET PROMPT
+
+${COMMON},
+
+${d.character},
+
+professional character sheet,
+front view,
+side view,
+back view,
+full body,
+facial expression sheet,
+costume detail,
+hairstyle detail,
+props detail,
+same character consistency,
+clean white background,
+4K quality`;
+    }
+
+    if($("storyboardOut")){
+      $("storyboardOut").innerHTML = renderRichStoryboard(d);
+    }
+
+    const imageItems = [];
+    const videoItems = [];
+
+    plan.forEach(c=>{
+      const imagePrompt = `CUT ${c.no} — ${c.title}
+
+${COMMON},
+
+${d.character},
+
+${c.action},
+${d.mood},
+${d.style},
+${ratioPrompt},
+unique scene composition for cut ${c.no},
+ultra detailed,
+cinematic composition,
+realistic lighting,
+no text,
+no logo,
+no watermark`;
+
+      const videoPrompt = `CUT ${c.no} — ${c.title}
+
+${COMMON},
+
+${d.character},
+
+${c.action},
+camera movement: ${c.camera},
+cinematic motion,
+${d.mood},
+${d.style},
+${ratioPrompt},
+natural motion blur,
+smooth cinematic focus pull,
+4K quality`;
+
+      imageItems.push({
+        num:c.no,
+        title:c.title || c.scene,
+        phase:c.phase,
+        desc:c.action || c.scene,
+        prompt:imagePrompt
+      });
+
+      videoItems.push({
+        num:c.no,
+        title:c.title || c.scene,
+        phase:c.phase,
+        desc:c.action || c.scene,
+        prompt:videoPrompt
+      });
+    });
+
+    pgSetPrompts("image", imageItems);
+    pgSetPrompts("video", videoItems);
+
+    if($("sunoOut")){
+      $("sunoOut").textContent =
+`STYLE
+${d.genre},
+${d.mood},
+cinematic Korean drama OST,
+emotional indie pop,
+soft piano,
+warm acoustic guitar,
+${d.runtime}
+
+LYRICS
+[Intro]
+빛이 번져 와
+
+[Verse]
+다시 움직여
+나의 장면을 찾아
+
+[Hook]
+Light me up
+다시 피어나`;
+    }
+  }catch(err){
+    console.error(err);
+    alert("생성 중 오류가 발생했습니다: " + err.message);
+  }
+}
+function renderCuts(containerId,plan,getPrompt){const box=$(containerId);box.innerHTML="";plan.forEach(c=>{const id=`${containerId}_${c.no}`;const div=document.createElement("div");div.className="cutCard";div.innerHTML=`<h3>CUT ${c.no} — ${c.title}</h3><textarea id="${id}">${getPrompt(c)}</textarea><div class="btns"><button class="action ghost" onclick="copyText('${id}')">이 컷 복사</button></div>`;box.appendChild(div)})}
+function copyText(id){const el=$(id);const text=("value"in el)?el.value:el.textContent;navigator.clipboard.writeText(text).then(()=>toast("복사 완료"))}
+function toast(msg){$("toast").textContent=msg;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",1400)}
+function saveInputs(){localStorage.setItem("simpleWorkflow",JSON.stringify({autoInput:$("autoInput") ? $("autoInput").value : "",genre:$("genre").value,topic:$("topic").value,background:$("background").value,mood:$("mood").value,character:$("character").value,runtime:$("runtime").value,cutCount:$("cutCount").value,style:$("style").value,aspectRatio:($("aspectRatio") ? $("aspectRatio").value : "9:16 vertical"),aspectRatio:$("aspectRatio").value}));toast("저장 완료")}
+function loadInputs(){const raw=localStorage.getItem("simpleWorkflow");if(!raw)return;const d=JSON.parse(raw);Object.keys(d).forEach(k=>{if($(k))$(k).value=d[k]})}
+function clearInputs(){localStorage.removeItem("simpleWorkflow");["autoInput","genre","topic","background","mood","character","runtime","cutCount","style"].forEach(id=>{if($(id))$(id).value=""}); if($("aspectRatio")) $("aspectRatio").value="Ratio"; generateAll()}
+
+function parseRuntimeSeconds(value){
+  const text = String(value || "").trim();
+  if(!text) return 0;
+
+  const minMatch = text.match(/(\d+(?:\.\d+)?)\s*(분|min|minute|minutes)/i);
+  const secMatch = text.match(/(\d+(?:\.\d+)?)\s*(초|sec|second|seconds|s)/i);
+
+  let seconds = 0;
+  if(minMatch) seconds += Number(minMatch[1]) * 60;
+  if(secMatch) seconds += Number(secMatch[1]);
+
+  if(!seconds){
+    const onlyNum = text.match(/\d+(?:\.\d+)?/);
+    if(onlyNum) seconds = Number(onlyNum[0]);
+  }
+  return Math.round(seconds);
+}
+
+function autoCalculateCuts(){
+  let seconds = parseRuntimeSeconds($("runtime").value);
+  if(!seconds) return;
+
+  seconds = Math.min(seconds, 300);
+
+  let cuts = 0;
+  if(seconds <= 15) cuts = 4;
+  else if(seconds <= 30) cuts = 6;
+  else if(seconds <= 45) cuts = 8;
+  else if(seconds <= 60) cuts = 10;
+  else if(seconds <= 90) cuts = 12;
+  else if(seconds <= 120) cuts = 16;
+  else if(seconds <= 180) cuts = 22;
+  else if(seconds <= 240) cuts = 26;
+  else cuts = 30;
+
+  $("cutCount").value = cuts;
+  generateAll();
+}
+
+function getPromptQualityScore(){
+  const d = data();
+  const image = $("imageOut").value || "";
+  const video = $("videoOut").value || "";
+  const checks = [
+    ["장르 입력", !!$("genre").value.trim()],
+    ["주제 입력", !!$("topic").value.trim()],
+    ["배경/장소 입력", !!$("background").value.trim()],
+    ["분위기 입력", !!$("mood").value.trim()],
+    ["등장인물 입력", !!$("character").value.trim()],
+    ["러닝타임 입력", !!$("runtime").value.trim()],
+    ["컷수 입력", !!$("cutCount").value.trim()],
+    ["스타일 입력", !!$("style").value.trim()],
+    ["화면 비율 선택", !!($("aspectRatio") && $("aspectRatio").value)],
+    ["이미지 프롬프트 생성", image.includes("IMAGE PROMPTS")],
+    ["영상 프롬프트 생성", video.includes("VIDEO PROMPTS")],
+    ["공통 시네마틱 스타일 포함", image.includes("cinematic commercial film") && video.includes("cinematic commercial film")],
+    ["세로 9:16 포함", image.includes("Ratio") && video.includes("Ratio")],
+    ["캐릭터 일관성 포함", image.includes("same character consistency") || video.includes("same character")],
+    ["컷별 구성", d.cutCount > 0 && image.includes("CUT 1") && video.includes("CUT 1")]
+  ];
+
+  const passed = checks.filter(c=>c[1]).length;
+  const score = Math.round((passed / checks.length) * 100);
+  return {score, checks};
+}
+
+function checkPromptQuality(){
+  generateAll();
+  const result = getPromptQualityScore();
+  const grade = result.score >= 90 ? "좋음" : result.score >= 70 ? "보통" : "수정 필요";
+  const checklist = result.checks.map(([name, ok]) => `${ok ? "✅" : "❌"} ${name}`).join("\n");
+
+  $("qualityOut").textContent =
+`PROMPT QUALITY CHECK
+
+점수: ${result.score}/100
+판정: ${grade}
+
+체크리스트
+${checklist}
+
+해석
+- 90점 이상: 바로 사용 가능
+- 70~89점: 사용 가능하지만 일부 보완 추천
+- 69점 이하: 입력값 또는 프롬프트 구조 보완 필요
+
+주의
+AI 프롬프트에는 정답이 없기 때문에 100% 완벽 여부를 자동으로 보장할 수는 없습니다.
+대신 누락 요소, 컷 구성, 스타일, 비율, 캐릭터 일관성 같은 실무 기준을 점검합니다.`;
+}
+
+function setupRuntimeAutoCut(){
+  const runtime = $("runtime");
+  if(!runtime) return;
+  runtime.addEventListener("input", () => {
+    clearTimeout(window.__runtimeTimer);
+    window.__runtimeTimer = setTimeout(autoCalculateCuts, 350);
+  });
+  runtime.addEventListener("change", autoCalculateCuts);
+}
+
+window.addEventListener("load",()=>{try{loadInputs();}catch(e){} generateAll();});
+</script>
+</body>
+</html>
