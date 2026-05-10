@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0f1117" />
+<title>AI Cinematic Director</title>
+
+<link rel="manifest" href="manifest.webmanifest" />
+
+<style>
+body{
+  margin:0;
+  background:#0f1117;
+  color:white;
+  font-family:Arial,sans-serif;
+}
+header{
+  padding:30px;
+  text-align:center;
+}
+.container{
+  width:min(1100px,95%);
+  margin:auto;
+}
+.card{
+  background:#171a23;
+  border-radius:18px;
+  padding:20px;
+  margin-bottom:20px;
+}
+input, textarea, select{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  margin-bottom:14px;
+  border-radius:12px;
+  border:none;
+  background:#0c0e15;
+  color:white;
+}
+button{
+  background:linear-gradient(135deg,#7c5cff,#00d4ff);
+  border:none;
+  color:white;
+  padding:12px 18px;
+  border-radius:12px;
+  font-weight:bold;
+  cursor:pointer;
+  margin-right:10px;
+}
+.output{
+  background:#0c0e15;
+  border-radius:12px;
+  padding:14px;
+  white-space:pre-wrap;
+  margin-top:10px;
+}
+.cut{
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>AI Cinematic Director</h1>
+<p>영상 제작 비서 PWA</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2>프로젝트 설정</h2>
+
+<label>프로젝트명</label>
+<input id="projectName" placeholder="예: 함안 감성여행" />
+
+<label>장소 목록</label>
+<textarea id="locations" rows="6">함안(드론)
+강주마을(해바라기)
+말이산고분군
+악양생태공원
+무진정</textarea>
+
+<label>캐릭터 프롬프트</label>
+<textarea id="character">young Korean woman, white dress, beige cardigan</textarea>
+
+<label>영상 스타일</label>
+<textarea id="tone">K-pop music video aesthetic, cinematic lighting, emotional storytelling, 4K, 9:16 vertical</textarea>
+
+<label>컷 수</label>
+<input id="cutCount" type="number" value="5" />
+
+<button onclick="generateCuts()">컷 생성</button>
+<button onclick="saveProject()">프로젝트 저장</button>
+
+</div>
+
+<div class="card">
+<h2>컷별 프롬프트</h2>
+<div id="cutList"></div>
+</div>
+
+</div>
+
+<script>
+
+function generateCuts(){
+
+  const locations = document.getElementById('locations').value
+  .split('\n')
+  .filter(v => v.trim() !== '');
+
+  const character = document.getElementById('character').value;
+  const tone = document.getElementById('tone').value;
+  const cutCount = Number(document.getElementById('cutCount').value);
+
+  const cutList = document.getElementById('cutList');
+  cutList.innerHTML = '';
+
+  for(let i=0;i<cutCount;i++){
+
+    const location = locations[i % locations.length];
+
+    const imagePrompt = `${location}, ${character}, ${tone}`;
+
+    const videoPrompt = `cinematic camera movement, ${location}, ${character}, ${tone}`;
+
+    const div = document.createElement('div');
+    div.className = 'cut';
+
+    div.innerHTML = `
+      <h3>컷 ${i+1}</h3>
+      <div class="output">${imagePrompt}</div>
+      <br>
+      <div class="output">${videoPrompt}</div>
+    `;
+
+    cutList.appendChild(div);
+  }
+}
+
+function saveProject(){
+
+  const data = {
+    projectName: document.getElementById('projectName').value,
+    locations: document.getElementById('locations').value,
+    character: document.getElementById('character').value,
+    tone: document.getElementById('tone').value,
+    cutCount: document.getElementById('cutCount').value
+  };
+
+  localStorage.setItem('aiProject', JSON.stringify(data));
+
+  alert('프로젝트 저장 완료');
+}
+
+window.onload = () => {
+
+  const saved = localStorage.getItem('aiProject');
+
+  if(saved){
+
+    const data = JSON.parse(saved);
+
+    document.getElementById('projectName').value = data.projectName || '';
+    document.getElementById('locations').value = data.locations || '';
+    document.getElementById('character').value = data.character || '';
+    document.getElementById('tone').value = data.tone || '';
+    document.getElementById('cutCount').value = data.cutCount || 5;
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js');
+}
+
+</script>
+
+</body>
+</html>
