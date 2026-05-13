@@ -1,0 +1,4251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Cinematic Workflow Director</title>
+<style>
+:root{--bg:#0f1117;--card:#181c25;--line:rgba(255,255,255,.14);--text:#f5f7fb;--muted:#aeb6c8;--blue:#00d4ff;--purple:#7c5cff}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#0f1117,#15192a);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif}
+header{padding:26px 16px 12px;text-align:center}
+.header-actions{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+h1{margin:0;font-size:clamp(26px,5vw,42px);letter-spacing:-.04em}
+.tabs{position:sticky;top:0;z-index:20;display:flex;gap:8px;overflow-x:auto;padding:10px;background:rgba(15,17,23,.94);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tabs button{white-space:nowrap;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;border-radius:999px;padding:9px 13px;font-weight:800;cursor:pointer}
+.tabs button.active{background:linear-gradient(135deg,var(--purple),var(--blue));border-color:transparent}
+.wrap{width:min(1100px,100%);margin:0 auto;padding:14px 12px 80px}
+.section{display:none}.section.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+h2{margin:0 0 12px;font-size:22px}
+label{display:block;margin:12px 0 6px;font-weight:800}
+input,textarea,select{width:100%;border:1px solid var(--line);background:#0b0e15;color:var(--text);border-radius:13px;padding:12px;font-size:15px}
+textarea{min-height:110px;resize:vertical;line-height:1.55}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+button.action{border:0;border-radius:13px;padding:10px 14px;color:white;font-weight:900;cursor:pointer;background:linear-gradient(135deg,var(--purple),var(--blue))}
+button.ghost{background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.output,.editable{width:100%;white-space:pre-wrap;background:#0b0e15;border:1px solid var(--line);border-radius:13px;padding:14px;line-height:1.6;color:#edf2ff}
+.editable{min-height:260px;resize:vertical}
+.cutGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.cutCard{border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.04);padding:12px}
+.cutCard h3{margin:0 0 8px;font-size:16px}
+.cutCard textarea{min-height:210px;font-size:13px}
+.notice{padding:12px;border-radius:13px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);color:#dff8ff;line-height:1.55}
+a{color:#7dd3fc;font-weight:800}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#111827;border:1px solid var(--line);padding:10px 15px;border-radius:999px;display:none}
+@media(max-width:820px){.grid{grid-template-columns:1fr}.card{padding:14px}.tabs button{font-size:12px;padding:8px 10px}}
+.style-chip{display:inline-block;padding:5px 11px;border-radius:999px;background:rgba(124,92,255,.15);border:1px solid rgba(124,92,255,.3);color:#d4bbff;font-size:12px;font-weight:800;cursor:default}
+.char-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.char-grid{grid-template-columns:1fr}}
+.char-card{border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.char-card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-weight:900;font-size:15px;gap:10px}
+.char-card-head.male{background:linear-gradient(135deg,rgba(59,130,246,.22),rgba(37,99,235,.1));border-bottom:1px solid rgba(59,130,246,.3)}
+.char-card-head.female{background:linear-gradient(135deg,rgba(236,72,153,.22),rgba(190,24,93,.1));border-bottom:1px solid rgba(236,72,153,.3)}
+.char-card-head.single{background:linear-gradient(135deg,rgba(124,92,255,.22),rgba(0,212,255,.1));border-bottom:1px solid rgba(124,92,255,.3)}
+.char-card textarea{border:0;border-radius:0;background:#0b0e15;min-height:320px;font-size:13px;line-height:1.6;resize:vertical}
+.char-card-foot{padding:10px 12px;background:rgba(255,255,255,.025);border-top:1px solid var(--line)}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:14px;
+  overflow:hidden;
+  border-radius:14px;
+}
+th,td{
+  border:1px solid rgba(255,255,255,.08);
+  padding:10px;
+  text-align:left;
+  font-size:14px;
+}
+th{
+  background:rgba(255,255,255,.08);
+  color:#fff;
+}
+tr:nth-child(even){
+  background:rgba(255,255,255,.03);
+}
+.storyCard{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:16px;
+  margin-top:14px;
+  background:rgba(255,255,255,.03);
+}
+.storyGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+.storyItem{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:12px;
+  background:rgba(255,255,255,.03);
+}
+.storyItem h4{
+  margin:0 0 8px;
+  font-size:15px;
+}
+
+
+.promptWorkspace{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  gap:14px;
+  min-height:720px;
+}
+.promptSidebar{
+  border-right:1px solid var(--line);
+  padding-right:12px;
+  max-height:760px;
+  overflow:auto;
+}
+.promptSearch{
+  margin-bottom:12px;
+}
+.promptListCard{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:10px;
+  background:rgba(255,255,255,.045);
+  cursor:pointer;
+}
+.promptListCard.active{
+  border-color:#6d5dfc;
+  background:rgba(109,93,252,.18);
+}
+.promptListCard small{
+  color:#60a5fa;
+  font-weight:900;
+  display:block;
+  margin-bottom:6px;
+}
+.promptListCard strong{
+  display:block;
+  margin-bottom:6px;
+}
+.promptListCard p{
+  color:var(--muted);
+  margin:0;
+  font-size:12px;
+  line-height:1.45;
+}
+.promptDetail{
+  background:rgba(255,255,255,.025);
+  border:1px solid var(--line);
+  border-radius:18px;
+  overflow:hidden;
+}
+.promptDetailHeader{
+  padding:18px;
+  border-bottom:1px solid var(--line);
+}
+.promptDetailHeader h2{
+  margin:0 0 8px;
+}
+.promptTags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.promptTag{
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(96,165,250,.16);
+  color:#dbeafe;
+  font-size:12px;
+  font-weight:800;
+}
+.promptEditorWrap{
+  padding:18px;
+}
+.promptEditorLabel{
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:12px;
+  margin-bottom:10px;
+  font-weight:800;
+}
+.promptEditor{
+  width:100%;
+  min-height:520px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#070a10;
+  color:#fff;
+  padding:18px;
+  line-height:1.65;
+  font-size:14px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+}
+.topPromptActions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-bottom:12px;
+}
+@media(max-width:900px){
+  .promptWorkspace{grid-template-columns:1fr}
+  .promptSidebar{border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:12px;max-height:340px}
+}
+
+
+.pg-app{
+  min-height:720px;
+  display:flex;
+  flex-direction:column;
+}
+.pg-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px 20px;
+  background:rgba(15,17,23,.82);
+  border:1px solid var(--line);
+  border-radius:18px 18px 0 0;
+}
+.pg-brand h2{
+  margin:0;
+  font-size:22px;
+  letter-spacing:-.5px;
+}
+.pg-brand span{
+  color:var(--muted);
+  font-size:13px;
+}
+.pg-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.pg-layout{
+  display:grid;
+  grid-template-columns:360px 1fr;
+  gap:18px;
+  min-height:650px;
+}
+.pg-sidebar,.pg-viewer{
+  background:rgba(23,27,36,.88);
+  border:1px solid var(--line);
+  overflow:hidden;
+}
+.pg-sidebar{
+  border-radius:0 0 0 18px;
+}
+.pg-viewer{
+  border-radius:0 0 18px 0;
+  display:flex;
+  flex-direction:column;
+}
+.pg-sidebar-head{
+  padding:18px;
+  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.02);
+}
+.pg-search{
+  width:100%;
+  padding:13px 14px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:#0c1018;
+  color:var(--text);
+  outline:none;
+  font-size:14px;
+}
+.pg-cut-list{
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height:620px;
+  overflow:auto;
+}
+.pg-cut-card{
+  padding:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.045);
+  border-radius:16px;
+  cursor:pointer;
+  transition:.18s ease;
+  overflow:hidden;
+  min-height:90px;
+}
+.pg-cut-card:hover,.pg-cut-card.active{
+  border-color:rgba(94,161,255,.8);
+  box-shadow:0 0 0 1px rgba(94,161,255,.14),0 12px 34px rgba(94,161,255,.12);
+}
+.pg-cut-card.active{
+  background:linear-gradient(180deg,rgba(94,161,255,.14),rgba(29,34,48,1));
+}
+.pg-cut-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  margin-bottom:6px;
+  flex-wrap:nowrap;
+}
+.pg-cut-num{
+  font-size:12px;
+  font-weight:900;
+  color:#5ea1ff;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.pg-badge{
+  font-size:11px;
+  color:var(--muted);
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.pg-cut-title{
+  font-size:14px;
+  line-height:1.4;
+  font-weight:900;
+  margin-bottom:5px;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  word-break:break-all;
+}
+.pg-cut-desc{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.pg-viewer-head{
+  padding:22px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:flex-start;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);
+}
+.pg-viewer-title h2{
+  margin:0 0 8px;
+  font-size:25px;
+  letter-spacing:-.6px;
+}
+.pg-viewer-title p{
+  margin:0;
+  color:var(--muted);
+  line-height:1.55;
+  font-size:14px;
+}
+.pg-meta-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+.pg-meta{
+  padding:7px 10px;
+  border-radius:999px;
+  background:rgba(94,161,255,.1);
+  border:1px solid rgba(94,161,255,.18);
+  color:#cfe4ff;
+  font-size:12px;
+  font-weight:800;
+}
+.pg-prompt-area{
+  padding:22px;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.pg-prompt-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  color:var(--muted);
+  font-size:13px;
+}
+.pg-prompt-box{
+  flex:1;
+  min-height:520px;
+  width:100%;
+  resize:vertical;
+  padding:20px;
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:#090c12;
+  color:#f2f6ff;
+  outline:none;
+  font-family:"Consolas","JetBrains Mono",monospace;
+  font-size:14px;
+  line-height:1.85;
+}
+@media(max-width:900px){
+  .pg-topbar{align-items:flex-start;flex-direction:column}
+  .pg-actions{width:100%;justify-content:flex-start}
+  .pg-layout{grid-template-columns:1fr}
+  .pg-sidebar{border-radius:0}
+  .pg-viewer{border-radius:0 0 18px 18px}
+  .pg-cut-list{max-height:360px}
+  .pg-viewer-head{flex-direction:column}
+  .pg-prompt-box{min-height:420px}
+}
+
+
+/* Uploaded CUT Card UI style applied to image/video prompt lists */
+.promptSidebar,
+.pg-sidebar{
+  background:linear-gradient(180deg,#111827 0%,#070b14 100%) !important;
+}
+.promptSearch,
+.pg-search{
+  height:48px !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:16px !important;
+  background:#0b1020 !important;
+  color:#e5e7eb !important;
+  padding:0 16px !important;
+  font-size:14px !important;
+}
+.promptListCard,
+.pg-cut-card{
+  position:relative !important;
+  border-radius:20px !important;
+  padding:16px 16px 15px !important;
+  background:rgba(17,24,39,.92) !important;
+  border:1px solid rgba(255,255,255,.09) !important;
+  border-left:4px solid #3b82f6 !important;
+  box-shadow:0 12px 30px rgba(0,0,0,.25) !important;
+  overflow:hidden !important;
+  cursor:pointer !important;
+}
+.promptListCard::after,
+.pg-cut-card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle at top right,rgba(59,130,246,.12),transparent 42%);
+  pointer-events:none;
+}
+.promptListCard:hover,
+.promptListCard.active,
+.pg-cut-card:hover,
+.pg-cut-card.active{
+  border-color:rgba(94,161,255,.8) !important;
+  box-shadow:0 0 0 1px rgba(94,161,255,.14),0 12px 34px rgba(94,161,255,.12) !important;
+}
+.promptListCard.active,
+.pg-cut-card.active{
+  background:linear-gradient(180deg,rgba(94,161,255,.14),rgba(29,34,48,1)) !important;
+}
+.pg-cut-card.opening,
+.promptListCard.opening{border-left-color:#3b82f6 !important;}
+.pg-cut-card.development,
+.promptListCard.development{border-left-color:#8b5cf6 !important;}
+.pg-cut-card.emotion,
+.promptListCard.emotion{border-left-color:#f59e0b !important;}
+.pg-cut-card.climax,
+.promptListCard.climax{border-left-color:#ef4444 !important;}
+.pg-cut-card.ending,
+.promptListCard.ending{border-left-color:#10b981 !important;}
+.pg-cut-top,
+.promptCutTop{
+  position:relative;
+  z-index:1;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+.pg-cut-num,
+.promptCutNum{
+  font-size:12px;
+  font-weight:900;
+  color:#60a5fa;
+  letter-spacing:.08em;
+}
+.pg-badge,
+.promptCutPhase{
+  font-size:11px;
+  padding:5px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  color:#dbeafe;
+  border:1px solid rgba(255,255,255,.07);
+}
+.pg-cut-title,
+.promptCutTitle{
+  position:relative;
+  z-index:1;
+  margin:0 0 9px;
+  font-size:17px;
+  line-height:1.32;
+  font-weight:900;
+  color:#f8fafc;
+  word-break:keep-all;
+}
+.pg-cut-desc,
+.promptCutDesc{
+  position:relative;
+  z-index:1;
+  margin:0;
+  font-size:13px;
+  line-height:1.55;
+  color:#aab6cc;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.promptCutMeta{
+  position:relative;
+  z-index:1;
+  display:flex;
+  gap:7px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.promptMetaChip{
+  font-size:11px;
+  color:#93c5fd;
+  background:rgba(59,130,246,.1);
+  border:1px solid rgba(59,130,246,.16);
+  border-radius:999px;
+  padding:5px 8px;
+}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Cinematic Workflow Director</h1>
+  <div class="header-actions">
+  </div>
+</header>
+<nav class="tabs">
+<button class="active" data-tab="input">입력</button><button data-tab="summary">전체 결과</button><button data-tab="characterSheet">전문캐릭터시트</button><button data-tab="storyboard">스토리보드</button><button data-tab="image">이미지 프롬프트</button><button data-tab="video">영상 프롬프트</button><button data-tab="suno">SUNO</button><button data-tab="quality">프롬프트 검사</button>
+</nav>
+<main class="wrap">
+<section class="section active" id="input">
+
+<!-- ── 상단 설정 카드 ── -->
+<div class="card" style="margin-bottom:14px">
+
+  <!-- GPT 링크 -->
+  <div class="notice" style="margin-bottom:14px">
+    GPT 바로가기: <a href="https://chatgpt.com/" onclick="openExternalLink('https://chatgpt.com/');return false;">https://chatgpt.com/</a>
+  </div>
+
+  <!-- 비주얼 스타일 감지 안내 -->
+  <div style="background:rgba(124,92,255,.1);border:1px solid rgba(124,92,255,.25);border-radius:14px;padding:14px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:18px">🎨</span>
+      <strong style="font-size:14px">비주얼 스타일 자동 감지</strong>
+      <span id="styleBadge" style="display:none;margin-left:6px;padding:4px 12px;border-radius:999px;background:linear-gradient(135deg,var(--purple),var(--blue));font-weight:900;font-size:12px"></span>
+    </div>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.6">장르 또는 간단 입력에 아래 키워드를 포함하면 캐릭터·이미지·영상 프롬프트가 해당 스타일로 자동 변환됩니다.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <span class="style-chip">🎬 실사</span>
+      <span class="style-chip">🌸 애니메이션</span>
+      <span class="style-chip">🇰🇷 한국 애니메이션</span>
+      <span class="style-chip">🎪 픽사3D</span>
+      <span class="style-chip">🖥 3D렌더</span>
+      <span class="style-chip">📱 웹툰</span>
+      <span class="style-chip">🎨 수채화</span>
+      <span class="style-chip">🌃 사이버펑크</span>
+      <span class="style-chip">🐉 판타지</span>
+      <span class="style-chip">📼 레트로</span>
+      <span class="style-chip">🎃 공포</span>
+    </div>
+  </div>
+
+  <!-- 화면 비율 + 러닝타임 + 컷수 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+    <div>
+      <div style="font-size:12px;color:var(--muted);font-weight:800;margin-bottom:6px">📐 화면 비율</div>
+      <select id="aspectRatio" style="margin:0">
+        <option value="9:16 vertical">9:16 세로 (1080x1920)</option>
+        <option value="16:9 horizontal">16:9 가로 (1920x1080)</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--muted);font-weight:800;margin-bottom:6px">⏱ 러닝타임</div>
+      <input id="runtime" placeholder="예: 60초, 3분" style="margin:0">
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--muted);font-weight:800;margin-bottom:6px">✂️ 컷수</div>
+      <input id="cutCount" type="number" min="1" max="30" placeholder="자동 계산" style="margin:0">
+    </div>
+  </div>
+</div>
+
+<!-- ── 입력/출력 2열 ── -->
+<div class="grid">
+
+  <!-- 오른쪽: 출력화면 -->
+  <div class="card" style="order:2">
+    <h2>출력화면</h2>
+    <div class="notice" style="margin-bottom:12px">왼쪽 입력화면에서 <strong>전체 생성</strong>을 누르면 아래 항목이 자동으로 채워집니다.</div>
+
+    <label>스타일</label>
+    <textarea id="style" placeholder="자동 생성됩니다"></textarea>
+
+    <label>GENRE</label>
+    <input id="genre" placeholder="자동 생성됩니다">
+
+    <label>TITLE</label>
+    <input id="topic" placeholder="자동 생성됩니다">
+
+    <label>LOGLINE</label>
+    <textarea id="loglineOnly" placeholder="자동 생성됩니다"></textarea>
+
+    <label>SYNOPSIS</label>
+    <textarea id="synopsisOnly" placeholder="자동 생성됩니다"></textarea>
+
+    <label>분위기</label>
+    <textarea id="mood" placeholder="자동 생성됩니다"></textarea>
+
+    <label>등장인물</label>
+    <textarea id="character" placeholder="자동 생성됩니다"></textarea>
+
+    <textarea id="autoInput" style="display:none"></textarea>
+    <textarea id="background" style="display:none"></textarea>
+  </div>
+
+  <!-- 왼쪽: 입력화면 -->
+  <div class="card" style="order:1">
+    <h2>입력화면</h2>
+
+    <label>등장인물</label>
+    <textarea id="sourceCharacter" placeholder="예: 20대 한국 여성 여행자&#10;예: [여자귀신] 긴 머리의 창백한 귀신&#10;예: [학생] 교복을 입은 고등학생"></textarea>
+
+    <label>내용</label>
+    <textarea id="sourceContent" style="min-height:210px" placeholder="예:&#10;러닝타임: 60초&#10;화면비율: 9:16&#10;스타일: 숏폼 관광 영상&#10;내용: 함안의 아름다운 관광지를 둘러보는 홍보 영상&#10;관광지:&#10;1. 강주마을(해바라기)&#10;2. 무진정 낙화놀이&#10;3. 악양생태공원&#10;4. 말이산고분군"></textarea>
+
+    <label>참고 이미지 업로드</label>
+    <div style="border:1px dashed var(--line);border-radius:14px;padding:14px;background:rgba(255,255,255,.04);margin-bottom:16px">
+      <input id="referenceImages" type="file" accept="image/*" multiple onchange="handleReferenceUpload(this.files)">
+      <p style="margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.5">최대 10장까지 적용됩니다. 업로드한 이미지는 캐릭터, 스토리보드, 이미지 프롬프트, 영상 프롬프트의 참고 이미지 지시문으로 함께 반영됩니다.</p>
+      <div id="referenceImageStatus" style="margin-top:8px;color:var(--muted);font-size:12px;font-weight:800"></div>
+      <div id="referenceImagePreview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;margin-top:10px"></div>
+    </div>
+
+    <div class="btns">
+      <button class="action" onclick="generateFromInputPanel()">전체 생성</button>
+      <button class="action ghost" onclick="clearInputs()">초기화</button>
+    </div>
+  </div>
+
+</div>
+</section>
+<section class="section" id="summary"><div class="card"><h2>전체 결과</h2><div class="btns"><button class="action ghost" onclick="copyText('summaryOut')">복사</button></div><div class="output" id="summaryOut"></div></div></section>
+<section class="section" id="characterSheet">
+  <div class="card">
+    <h2>전문 캐릭터 시트</h2>
+    <div class="notice" style="margin-bottom:14px">등장인물 입력에 <strong>[남자]</strong> / <strong>[여자]</strong> 태그를 포함하거나, 남자·여자를 모두 입력하면 각각의 시트가 분리됩니다.</div>
+    <div id="charSheetWrap">
+      <!-- JS로 렌더링 -->
+    </div>
+  </div>
+</section>
+<section class="section" id="storyboard"><div class="card"><h2>스토리보드</h2><div class="btns"><button class="action ghost" onclick="copyText('storyboardOut')">복사</button></div><div id="storyboardOut"></div></div></section>
+
+
+<section class="section" id="image">
+  <div class="pg-app">
+    <header class="pg-topbar">
+      <div class="pg-brand">
+        <h2>이미지 프롬프트</h2>
+        <span>컷별 프롬프트를 선택해서 확인하고 복사하는 작업 공간</span>
+      </div>
+      <div class="pg-actions">
+        <button class="action ghost" onclick="pgCopyAll('image')">전체 복사</button>
+        <button class="action ghost" onclick="pgDownloadTxt('image')">TXT 다운로드</button>
+        <button class="action" onclick="pgCopyCurrent('image')">현재 컷 복사</button>
+      </div>
+    </header>
+    <main class="pg-layout">
+      <aside class="pg-sidebar">
+        <div class="pg-sidebar-head">
+          <input class="pg-search" id="imagePgSearch" placeholder="CUT 검색... 예: 오프닝, 클라이맥스" oninput="pgRenderList('image')" />
+        </div>
+        <div class="pg-cut-list" id="imageCuts"></div>
+      </aside>
+      <section class="pg-viewer">
+        <div class="pg-viewer-head">
+          <div class="pg-viewer-title">
+            <h2 id="imageViewerTitle">CUT 선택</h2>
+            <p id="imageViewerDesc">왼쪽 컷을 선택하면 프롬프트가 표시됩니다.</p>
+            <div class="pg-meta-row">
+              <span class="pg-meta" id="imageMetaPhase">-</span>
+              <span class="pg-meta">Image Prompt</span>
+              <span class="pg-meta" id="imageMetaRatio">Ratio</span>
+            </div>
+          </div>
+          <button class="action" onclick="pgCopyCurrent('image')">이 컷 복사</button>
+        </div>
+        <div class="pg-prompt-area">
+          <div class="pg-prompt-toolbar">
+            <strong>제작용 프롬프트</strong>
+            <span>이미지 생성기에 그대로 입력</span>
+          </div>
+          <textarea class="pg-prompt-box" id="imagePromptBox"></textarea>
+          <div class="pg-prompt-toolbar" style="margin-top:12px">
+            <strong>한글 설명</strong>
+            <span>요청 내용이 제대로 반영됐는지 확인용</span>
+          </div>
+          <textarea class="pg-prompt-box" id="imageKoPromptBox" readonly></textarea>
+          <textarea id="imageOut" style="display:none"></textarea>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+
+
+<section class="section" id="video">
+  <div class="pg-app">
+    <header class="pg-topbar">
+      <div class="pg-brand">
+        <h2>영상 프롬프트</h2>
+        <span>컷별 프롬프트를 선택해서 확인하고 복사하는 작업 공간</span>
+      </div>
+      <div class="pg-actions">
+        <button class="action ghost" onclick="pgCopyAll('video')">전체 복사</button>
+        <button class="action ghost" onclick="pgDownloadTxt('video')">TXT 다운로드</button>
+        <button class="action" onclick="pgCopyCurrent('video')">현재 컷 복사</button>
+      </div>
+    </header>
+    <main class="pg-layout">
+      <aside class="pg-sidebar">
+        <div class="pg-sidebar-head">
+          <input class="pg-search" id="videoPgSearch" placeholder="CUT 검색... 예: 오프닝, 클라이맥스" oninput="pgRenderList('video')" />
+        </div>
+        <div class="pg-cut-list" id="videoCuts"></div>
+      </aside>
+      <section class="pg-viewer">
+        <div class="pg-viewer-head">
+          <div class="pg-viewer-title">
+            <h2 id="videoViewerTitle">CUT 선택</h2>
+            <p id="videoViewerDesc">왼쪽 컷을 선택하면 프롬프트가 표시됩니다.</p>
+            <div class="pg-meta-row">
+              <span class="pg-meta" id="videoMetaPhase">-</span>
+              <span class="pg-meta">Video Prompt</span>
+              <span class="pg-meta" id="videoMetaRatio">Ratio</span>
+            </div>
+          </div>
+          <button class="action" onclick="pgCopyCurrent('video')">이 컷 복사</button>
+        </div>
+        <div class="pg-prompt-area">
+          <div class="pg-prompt-toolbar">
+            <strong>제작용 프롬프트</strong>
+            <span>영상 생성기에 그대로 입력</span>
+          </div>
+          <textarea class="pg-prompt-box" id="videoPromptBox"></textarea>
+          <div class="pg-prompt-toolbar" style="margin-top:12px">
+            <strong>한글 설명</strong>
+            <span>요청 내용이 제대로 반영됐는지 확인용</span>
+          </div>
+          <textarea class="pg-prompt-box" id="videoKoPromptBox" readonly></textarea>
+          <textarea id="videoOut" style="display:none"></textarea>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+<section class="section" id="suno">
+  <div class="card">
+    <h2>🎵 SUNO 자동 음악 생성모드</h2>
+    <div class="notice" style="margin-bottom:16px">SUNO 바로가기: <a href="https://suno.com/" onclick="openExternalLink('https://suno.com/');return false;">https://suno.com/</a></div>
+
+    <!-- 설정 그리드 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px">🎵 음악 스타일</div>
+        <select id="sunoStyleInput" style="margin:0">
+          <option value="발라드" selected>발라드</option>
+          <option value="팝">팝</option>
+          <option value="OST">OST / 시네마틱</option>
+          <option value="힙합">힙합</option>
+          <option value="로파이">로파이</option>
+          <option value="EDM">EDM / 댄스</option>
+          <option value="록">록</option>
+          <option value="재즈">재즈</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px">🥁 BPM</div>
+        <select id="sunoBpmInput" style="margin:0">
+          <option value="60">60 BPM</option>
+          <option value="70">70 BPM</option>
+          <option value="80" selected>80 BPM</option>
+          <option value="90">90 BPM</option>
+          <option value="100">100 BPM</option>
+          <option value="110">110 BPM</option>
+          <option value="120">120 BPM</option>
+          <option value="128">128 BPM</option>
+          <option value="140">140 BPM</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px">🌐 가사 언어</div>
+        <select id="sunoLangSelect" style="margin:0">
+          <option value="korean">한국어</option>
+          <option value="english">영어</option>
+          <option value="japanese">일본어</option>
+          <option value="ko_jp">한국어+일본어 혼합</option>
+          <option value="bilingual">한영 혼합</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px">⏱ 음악 길이</div>
+        <select id="sunoLengthSelect" style="margin:0">
+          <option value="30초">30초</option>
+          <option value="60초" selected>60초</option>
+          <option value="90초">90초</option>
+          <option value="2분">2분</option>
+          <option value="3분">3분</option>
+          <option value="영상 길이에 맞춤">영상 길이에 맞춤</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px">🎬 최종 결과물 확인</div>
+      <div id="sunoSourcePreview" class="output" style="min-height:110px;max-height:220px;overflow:auto;margin:0"></div>
+    </div>
+
+    <!-- 생성 버튼 -->
+    <div class="btns" style="margin-bottom:12px">
+      <button class="action" onclick="generateSunoLyrics()" id="sunoGenBtn">
+        <span id="sunoGenBtnText">🎵 가사 출력</span>
+      </button>
+      <button class="action ghost" onclick="openSuno()">🔗 SUNO 열기</button>
+    </div>
+
+    <!-- 상태 메시지 -->
+    <div id="sunoGenStatus" style="display:none;font-size:13px;font-weight:800;margin-bottom:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.05)"></div>
+
+    <!-- 가사 출력 결과 -->
+    <div id="sunoResultWrap" style="display:none">
+      <div style="border:1px solid rgba(124,92,255,.3);border-radius:16px;overflow:hidden">
+
+        <!-- SUNO 스타일 프롬프트 -->
+        <div style="background:rgba(124,92,255,.1);padding:12px 16px;border-bottom:1px solid rgba(124,92,255,.2)">
+          <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px">🎼 SUNO Style of Music 입력칸에 붙여넣기</div>
+          <div id="sunoStyleResult" style="font-size:13px;font-weight:700;color:#d4bbff;line-height:1.6;word-break:break-all"></div>
+          <button class="action ghost" style="margin-top:8px;padding:5px 14px;font-size:12px" onclick="copySunoStyle()">스타일 복사</button>
+        </div>
+
+        <!-- 곡 제목 -->
+        <div style="padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px">🎤 곡 제목</div>
+            <div id="sunoTitleResult" style="font-size:16px;font-weight:900"></div>
+          </div>
+          <button class="action ghost" style="padding:5px 14px;font-size:12px" onclick="copySunoTitle()">제목 복사</button>
+        </div>
+
+        <!-- 가사 본문 -->
+        <div style="padding:14px 16px">
+          <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:8px">📝 가사</div>
+          <div id="sunoLyricsResult" style="font-size:14px;line-height:2;white-space:pre-wrap"></div>
+        </div>
+
+      </div>
+
+      <!-- 하단 버튼 -->
+      <div class="btns" style="margin-top:12px">
+        <button class="action" onclick="copyAllSuno()">전체 복사 (스타일+가사)</button>
+        <button type="button" class="action ghost" onclick="regenerateSunoLyrics()">🔄 다시 출력</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="section" id="quality">
+  <div class="card">
+    <h2>프롬프트 검사</h2>
+    <div class="notice">입력값과 생성된 프롬프트가 기본 제작 조건을 충족하는지 간단히 확인합니다. 완벽함을 보장하지는 않지만, 누락된 요소를 빠르게 점검할 수 있습니다.</div>
+    <div class="btns"><button class="action ghost" onclick="checkPromptQuality()">검사하기</button><button class="action ghost" onclick="copyText('qualityOut')">검사 결과 복사</button></div>
+    <div class="output" id="qualityOut"></div>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast">완료</div>
+<script>
+const $ = id => document.getElementById(id);
+/* ── VISUAL STYLE PRESETS ── */
+const VISUAL_STYLE_PRESETS = {
+  realistic: {
+    label: "실사 / 시네마틱",
+    common: `cinematic commercial film,\nultra realistic,\nKodak Portra 400 color grading,\nanamorphic lens,\nsoft film grain,\ncinematic lighting,\nshallow depth of field,\nsmooth camera movement,\nnatural motion blur,\npremium advertisement style,\n4K quality`,
+    characterSuffix: `ultra realistic human,\nprofessional character sheet,\nfront view, side view, back view, full body,\nfacial expression sheet, costume detail,\nhairstyle detail, props detail,\nsame character consistency,\nclean white background, photorealistic, 4K`,
+    imageExtra: `ultra detailed, cinematic composition, realistic lighting, no text, no logo, no watermark`,
+    videoExtra: `natural motion blur, smooth cinematic focus pull, 4K quality`,
+    cameraStyle: `cinematic motion`
+  },
+  anime: {
+    label: "애니메이션 / 일본 애니",
+    common: `anime style,\n2D hand-drawn animation,\nvibrant cel shading,\nexpressive character design,\ndramatic lighting,\nanime color palette,\nclean line art,\nStudio Ghibli inspired atmosphere,\nhigh quality anime art`,
+    characterSuffix: `anime character sheet,\nfront view, side view, back view, full body,\nfacial expression sheet,\ndetailed costume design,\nsame character consistency,\nclean white background,\nprofessional anime art style`,
+    imageExtra: `sharp line art, vivid colors, anime composition, no text, no logo`,
+    videoExtra: `smooth anime motion, fluid animation style, dynamic camera angle`,
+    cameraStyle: `anime cinematic motion`
+  },
+  koreanAnime: {
+    label: "한국 애니메이션",
+    common: `Korean animation style,
+clean 2D animation,
+K-animation character design,
+soft expressive faces,
+warm cinematic color,
+clean line art,
+delicate background painting,
+natural emotional acting,
+high quality Korean animated film look`,
+    characterSuffix: `Korean animation character sheet,
+front view, side view, back view, full body,
+facial expression sheet,
+detailed costume design,
+props and accessory detail,
+same character consistency,
+clean white background,
+professional K-animation design`,
+    imageExtra: `Korean animation composition, clean line art, warm colors, no text, no logo`,
+    videoExtra: `smooth Korean animation motion, emotional acting, cinematic camera movement`,
+    cameraStyle: `Korean animation cinematic motion`
+  },
+  pixar: {
+    label: "픽사 / 3D 애니메이션",
+    common: `Pixar 3D animation style,\nhigh-end CGI,\nsoft subsurface scattering,\nexpressive character faces,\nwarm cinematic lighting,\nrich color grading,\nsmooth 3D render,\nPixar film quality,\nDisney animation aesthetic`,
+    characterSuffix: `Pixar 3D character sheet,\nfront view, side view, back view, full body,\nfacial expression sheet,\ndetailed costume and texture,\nsame character consistency,\nclean white background,\nPixar CGI quality render`,
+    imageExtra: `3D render, cinematic CGI, Pixar quality, expressive lighting, no text, no logo`,
+    videoExtra: `smooth 3D animation, Pixar cinematic motion, expressive character movement`,
+    cameraStyle: `Pixar-style cinematic camera`
+  },
+  "3d": {
+    label: "3D / CG 렌더링",
+    common: `photorealistic 3D render,\nUnreal Engine 5 quality,\nray tracing,\nphysically based rendering,\ncinematic lighting,\nhigh polygon detail,\nambient occlusion,\nvolumetric light,\n8K render quality`,
+    characterSuffix: `3D character model sheet,\nfront view, side view, back view, full body,\ntopology detail, texture detail,\nrigging pose, facial expression,\nsame character consistency,\nneutral studio lighting,\nPBR material, 8K render`,
+    imageExtra: `ray traced render, ultra high detail, 3D CGI, no text, no logo`,
+    videoExtra: `3D cinematic animation, motion blur, depth of field, render quality`,
+    cameraStyle: `3D cinematic camera movement`
+  },
+  webtoon: {
+    label: "웹툰 / 코믹",
+    common: `Korean webtoon style,\nclean digital illustration,\nbold outlines,\nflat color with soft shadow,\nmanhwa aesthetic,\nexpressive facial expression,\nwebtoon panel composition,\nprofessional digital comic art`,
+    characterSuffix: `webtoon character sheet,\nfront view, side view, back view, full body,\nfacial expression sheet,\ncostume detail,\nsame character consistency,\nclean white background,\nKorean manhwa art style`,
+    imageExtra: `webtoon composition, bold line art, vivid flat color, no text, no logo`,
+    videoExtra: `webtoon motion comic style, panel-to-panel animation, dynamic pose`,
+    cameraStyle: `webtoon cinematic panel`
+  },
+  watercolor: {
+    label: "수채화 / 감성 일러스트",
+    common: `watercolor illustration,\nsoft brush strokes,\npastel color palette,\ndreamy atmosphere,\ndelicate paper texture,\nhand-painted feel,\nsoft light and shadow,\nartistic illustration style`,
+    characterSuffix: `watercolor character sheet,\nfront view, side view, back view, full body,\nfacial expression sheet,\ndetailed costume design,\nprops and accessory detail,\nsoft color palette,\nhand-painted texture,\nsame character consistency,\nclean white background,\nartistic watercolor style`,
+    imageExtra: `soft watercolor texture, painterly look, artistic composition, no text, no logo`,
+    videoExtra: `watercolor animation style, soft motion, painterly transition`,
+    cameraStyle: `soft illustrative camera`
+  },
+  cyberpunk: {
+    label: "사이버펑크 / SF",
+    common: `cyberpunk aesthetic,\nneon-lit futuristic cityscape,\ndark atmosphere,\nholographic UI elements,\nrain-soaked reflections,\nhigh contrast lighting,\nsci-fi visual style,\nBlade Runner inspired,\ncinematic noir`,
+    characterSuffix: `cyberpunk character sheet,\nfront view, side view, back view, full body,\ncyberpunk costume and armor,\nneon lighting on character,\nsame character consistency,\ndark studio background,\ncinematic sci-fi quality`,
+    imageExtra: `neon glow, futuristic detail, cyberpunk composition, no text, no logo`,
+    videoExtra: `cyberpunk cinematic motion, neon light flicker, holographic effects`,
+    cameraStyle: `cyberpunk cinematic camera`
+  },
+  fantasy: {
+    label: "판타지 / 동화",
+    common: `fantasy illustration,\nepic fantasy art style,\nmagical atmosphere,\npainterly quality,\nrich fantasy colors,\ndramatic lighting,\ndetailed environment,\ncinematic fantasy world`,
+    characterSuffix: `fantasy character sheet,\nfront view, side view, back view, full body,\ndetailed fantasy costume and armor,\nmagical props detail,\nsame character consistency,\nmystical background,\nepic fantasy art quality`,
+    imageExtra: `magical atmosphere, fantasy detail, epic composition, no text, no logo`,
+    videoExtra: `fantasy cinematic motion, magical particle effects, epic camera`,
+    cameraStyle: `epic fantasy cinematic camera`
+  },
+  retro: {
+    label: "레트로 / 빈티지",
+    common: `retro vintage style,\nfilm grain texture,\nfaded color palette,\nnostalgic atmosphere,\nvintage film photography,\nwarm tones,\nslightly overexposed,\nanalog aesthetic,\n80s or 90s visual style`,
+    characterSuffix: `retro style character illustration,\nfull body,\nvintage costume detail,\nanalog film color grading,\nsame character consistency,\nclean vintage background,\nretro illustration quality`,
+    imageExtra: `vintage grain, retro color palette, nostalgic composition, no text, no logo`,
+    videoExtra: `retro film motion, vintage color grade, analog flicker`,
+    cameraStyle: `retro film camera movement`
+  },
+  horror: {
+    label: "공포 / 다크",
+    common: `dark horror aesthetic,\natmospheric shadows,\ndesaturated color palette,\ndramatic contrast lighting,\neerie atmosphere,\ncinematic horror style,\nmoody dark tones,\nunsettling composition`,
+    characterSuffix: `horror character design sheet,\nfront view, side view, full body,\ndetailed dark costume,\ndramatic horror lighting,\nsame character consistency,\ndark atmospheric background,\ncinematic horror quality`,
+    imageExtra: `dark atmosphere, horror lighting, eerie composition, no text, no logo`,
+    videoExtra: `horror cinematic motion, slow unsettling camera, dark atmosphere`,
+    cameraStyle: `horror cinematic camera`
+  }
+};
+
+function detectVisualStyle(text){
+  const t = (text||"").toLowerCase();
+  if(t.includes("사이버펑크")||t.includes("cyberpunk")||t.includes("블레이드러너")||t.includes("네온 도시")||t.includes("neon city")) return "cyberpunk";
+  if(t.includes("공포")||t.includes("horror")||t.includes("호러")||t.includes("좀비")||t.includes("스릴러 공포")) return "horror";
+  if(t.includes("수채화")||t.includes("watercolor")||t.includes("그림책")||t.includes("동화 스타일")) return "watercolor";
+  if(t.includes("웹툰")||t.includes("manhwa")||t.includes("만화 스타일")||t.includes("comic")) return "webtoon";
+  if(t.includes("레트로")||t.includes("retro")||t.includes("빈티지")||t.includes("vintage")||t.includes("아날로그")||t.includes("80년대")||t.includes("90년대")) return "retro";
+  if(t.includes("한국 애니")||t.includes("한국애니")||t.includes("korean animation")||t.includes("k-animation")||t.includes("k animation")) return "koreanAnime";
+  if(t.includes("픽사")||t.includes("pixar")||t.includes("cgi 애니")||t.includes("디즈니")||t.includes("disney")) return "pixar";
+  if(t.includes("3d")||t.includes("언리얼")||t.includes("unreal")||t.includes("블렌더")||t.includes("blender")||t.includes("vfx")||t.includes("게임 시네마틱")) return "3d";
+  if(t.includes("판타지")||t.includes("fantasy")||t.includes("마법")||t.includes("드래곤")||t.includes("rpg")||t.includes("중세 판타지")) return "fantasy";
+  if(t.includes("애니메이션")||t.includes("애니")||t.includes("anime")||t.includes("지브리")||t.includes("ghibli")||t.includes("이세계")||t.includes("2d 애니")) return "anime";
+  if(t.includes("sf")||t.includes("sci-fi")) return "cyberpunk";
+  return "realistic";
+}
+
+function getCurrentStyleKey(){
+  const explicit = [
+    $("style")?$("style").value:"",
+    $("autoInput")?$("autoInput").value:""
+  ].join(" ");
+  const explicitKey = detectVisualStyle(explicit);
+  if(explicitKey !== "realistic") return explicitKey;
+  return detectVisualStyle($("genre") ? $("genre").value : "");
+}
+
+function getStylePreset(key){ return VISUAL_STYLE_PRESETS[key]||VISUAL_STYLE_PRESETS.realistic; }
+
+let COMMON = VISUAL_STYLE_PRESETS.realistic.common;
+document.querySelectorAll(".tabs button").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));btn.classList.add("active");$(btn.dataset.tab).classList.add("active")}));
+function data(){
+  if($("loglineOnly") || $("synopsisOnly")){
+    const logOnly = $("loglineOnly") ? $("loglineOnly").value.trim() : "";
+    const synOnly = $("synopsisOnly") ? $("synopsisOnly").value.trim() : "";
+    if($("background") && (logOnly || synOnly)){
+      $("background").value = `LOGLINE
+
+${logOnly}
+
+SYNOPSIS
+
+${synOnly}`;
+    }
+  }
+  const storyText = $("background").value.trim();
+  let scenes = storyText.replace(/\r/g,"").split("\n").map(v=>v.trim()).filter(Boolean);
+
+  // LOGLINE/SYNOPSIS 구조가 있을 때는 scene으로 쓰지 않고 파싱만 함
+  let logline = "";
+  let synopsis = storyText;
+  const logMatch = storyText.match(/LOGLINE\s*([\s\S]*?)SYNOPSIS/i);
+  const synMatch = storyText.match(/SYNOPSIS\s*([\s\S]*)/i);
+  if(logMatch) logline = logMatch[1].trim();
+  if(synMatch) synopsis = synMatch[1].trim();
+
+  // LOGLINE/SYNOPSIS 구조면 scenes는 synopsis 줄들로 구성
+  if(logMatch || synMatch){
+    const synLines = synopsis.replace(/\r/g,"").split("\n").map(v=>v.trim()).filter(Boolean);
+    scenes = synLines.length >= 3 ? synLines : [
+      "오프닝 세계관 소개",
+      "주인공 첫 등장",
+      "목표 또는 관계의 시작",
+      "감정과 긴장감 상승",
+      "위기와 갈등",
+      "클라이맥스",
+      "결정적 순간",
+      "여운 있는 엔딩"
+    ];
+  } else if(scenes.length === 0){
+    // 입력이 아예 없을 때만 기본값 사용
+    scenes = ["오프닝","주요 장면","클라이맥스","엔딩"];
+  }
+
+  const typedRatio = extractAspectRatioChoice([
+    $("sourceContent") ? $("sourceContent").value : "",
+    $("autoInput") ? $("autoInput").value : ""
+  ].join("\n"));
+  if(typedRatio && $("aspectRatio")) $("aspectRatio").value = typedRatio;
+  const selectedRatio = $("aspectRatio") ? ($("aspectRatio").value || "9:16 vertical") : "9:16 vertical";
+
+  return {
+    genre:$("genre").value.trim()||"cinematic video",
+    topic:$("topic").value.trim()||"untitled project",
+    scenes:scenes,
+    logline:logline || "입력한 이야기를 한 문장으로 압축한 로그라인이 생성됩니다.",
+    synopsis:synopsis || "시놉시스 없음",
+    mood:$("mood").value.trim()||"cinematic mood",
+    character:$("character").value.trim()||"",
+    runtime:$("runtime").value.trim()||"60 seconds",
+    cutCount:Math.max(1,Number($("cutCount").value||scenes.length||5)),
+    style:$("style").value.trim()||"cinematic style",
+    aspectRatio:selectedRatio,
+    referenceImages:getReferenceImagePrompt()
+  }
+}
+function phase(i,total){const r=i/total;if(r<.2)return"오프닝";if(r<.45)return"전개";if(r<.65)return"감정 장면";if(r<.85)return"클라이맥스";return"엔딩"}
+function action(p,scene){return{"오프닝":`cinematic opening reveal of ${scene}`,"전개":`main character moves through ${scene}`,"감정 장면":`emotional close-up inside ${scene}`,"클라이맥스":`powerful hero moment in ${scene}`,"엔딩":`final emotional frame in ${scene}`}[p]||`cinematic scene in ${scene}`}
+function camera(p){return{"오프닝":"drone reveal, wide shot","전개":"smooth tracking shot","감정 장면":"slow push-in, close-up","클라이맥스":"speed ramp, orbit movement","엔딩":"slow pull-out, final wide shot"}[p]||"smooth camera movement"}
+function makePlan(d){return Array.from({length:d.cutCount},(_,i)=>{const p=phase(i,d.cutCount),scene=d.scenes[i%d.scenes.length];return{no:i+1,phase:p,scene,title:`${scene} / ${p}`,action:action(p,scene),camera:camera(p)}})}
+
+
+
+
+
+
+
+function detectBackground(text){
+  const subjects = getDetectedSubjects(text);
+  if(subjects.length){
+    const subjectText = formatSubjectList(subjects);
+    return [
+      `햇살이 들어오는 공간에서 ${subjectText}가 등장하는 오프닝`,
+      "작은 장난감 지도를 발견하는 순간",
+      "거실과 정원을 지나며 함께 모험을 시작",
+      "낯선 소리와 그림자를 만나 잠시 긴장",
+      `${subjectText}가 서로를 도우며 문제를 해결`,
+      "따뜻한 노을 속에서 가족에게 돌아오는 엔딩"
+    ].join("\n");
+  }
+  if(text.includes("연애") || text.includes("드라마")){
+    return [
+      "서울 저녁 거리",
+      "카페 첫 만남",
+      "지하철 재회",
+      "함께 걷는 골목길",
+      "한강 야경 데이트",
+      "비 오는 우산 장면",
+      "서로 멀어지는 밤",
+      "진심을 확인하는 엔딩"
+    ].join("\n");
+  }
+  if(text.includes("관광") || text.includes("여행")){
+    return [
+      "전체 드론 오프닝",
+      "대표 장소 첫 방문",
+      "인물 이동 장면",
+      "핵심 명소 감상",
+      "감정 클로즈업",
+      "야경 또는 노을 장면",
+      "엔딩 와이드샷"
+    ].join("\n");
+  }
+  return [
+    "오프닝 리빌",
+    "주요 인물 등장",
+    "핵심 상황 전개",
+    "감정 변화 장면",
+    "클라이맥스",
+    "엔딩 장면"
+  ].join("\n");
+}
+
+
+
+
+function getAutoText(){
+  return ($("autoInput") ? $("autoInput").value.trim() : "");
+}
+
+function parseAutoInputSections(text){
+  const sections = { character:"", content:"", places:"", style:"", runtime:"", ratio:"" };
+  let current = "content";
+  const headerMap = [
+    { key:"character", re:/^(등장인물|캐릭터|인물)\s*[:：]?\s*(.*)$/i },
+    { key:"content", re:/^(내용|스토리|줄거리|시놉시스|요청내용)\s*[:：]?\s*(.*)$/i },
+    { key:"places", re:/^(관광지|장소|배경|코스|촬영지)\s*[:：]?\s*(.*)$/i },
+    { key:"style", re:/^(스타일|비주얼스타일|영상스타일)\s*[:：]?\s*(.*)$/i },
+    { key:"runtime", re:/^(러닝타임|길이|시간)\s*[:：]?\s*(.*)$/i },
+    { key:"ratio", re:/^(화면비율|비율|사이즈)\s*[:：]?\s*(.*)$/i }
+  ];
+
+  String(text || "").replace(/\r/g,"").split("\n").forEach(rawLine => {
+    const line = rawLine.trim();
+    if(!line) return;
+    const matched = headerMap.find(h => h.re.test(line));
+    if(matched){
+      current = matched.key;
+      const value = line.match(matched.re)[2].trim();
+      if(value) sections[current] += (sections[current] ? "\n" : "") + value;
+      return;
+    }
+    sections[current] += (sections[current] ? "\n" : "") + line;
+  });
+  return sections;
+}
+
+function extractAspectRatioChoice(text){
+  const source = String(text || "").toLowerCase();
+  if(/9\s*:\s*16|1080\s*[x*×]\s*1920|세로|vertical|portrait/.test(source)){
+    return "9:16 vertical";
+  }
+  if(/16\s*:\s*9|1920\s*[x*×]\s*1080|가로|horizontal|landscape/.test(source)){
+    return "16:9 horizontal";
+  }
+  return "";
+}
+
+function stripNonCharacterSections(text){
+  const sections = parseAutoInputSections(text);
+  if(sections.character) return sections.character;
+
+  const cleaned = [];
+  let skip = false;
+  String(text || "").replace(/\r/g,"").split("\n").forEach(rawLine => {
+    const line = rawLine.trim();
+    if(/^(관광지|장소|배경|코스|촬영지)\s*[:：]?/i.test(line)){ skip = true; return; }
+    if(/^(내용|스토리|줄거리|시놉시스|요청내용|스타일|러닝타임|길이|시간|화면비율|비율|사이즈)\s*[:：]?/i.test(line)){ skip = false; return; }
+    if(skip) return;
+    if(/^\d+\s*[.)]\s*/.test(line)) return;
+    cleaned.push(line);
+  });
+  return cleaned.join("\n").trim() || text;
+}
+
+let uploadedReferenceImages = [];
+
+function handleReferenceUpload(fileList){
+  const files = Array.from(fileList || []).filter(file => file.type && file.type.startsWith("image/"));
+  const limited = files.slice(0, 10);
+  if(files.length > 10) toast("참고 이미지는 최대 10장까지 적용됩니다");
+
+  Promise.all(limited.map(file => new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ name:file.name, type:file.type, dataUrl:reader.result });
+    reader.onerror = () => resolve({ name:file.name, type:file.type, dataUrl:"" });
+    reader.readAsDataURL(file);
+  }))).then(items => {
+    uploadedReferenceImages = items;
+    renderReferencePreviews();
+    generateAll();
+  });
+}
+
+function renderReferencePreviews(){
+  const status = $("referenceImageStatus");
+  const preview = $("referenceImagePreview");
+  if(status) status.textContent = uploadedReferenceImages.length ? `${uploadedReferenceImages.length}/10장 적용 중` : "";
+  if(!preview) return;
+  preview.innerHTML = uploadedReferenceImages.map((item,index)=>`
+    <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.05)">
+      <img src="${item.dataUrl}" alt="reference ${index+1}" style="width:100%;aspect-ratio:1/1;object-fit:cover;display:block">
+      <div style="padding:6px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.name || `reference-${index+1}`)}</div>
+    </div>
+  `).join("");
+}
+
+function getReferenceImagePrompt(){
+  if(!uploadedReferenceImages.length) return "";
+  const names = uploadedReferenceImages.map((item,index)=>`Reference image ${index+1}: ${item.name || "uploaded image"}`).join("\n");
+  return `UPLOADED REFERENCE IMAGES:
+${names}
+Use the uploaded reference images as the visual source for character identity, species, age, costume, color palette, mood, composition, storyboard continuity, image prompts, and video prompts.
+If the reference shows a baby, animal, object, or non-human character, keep that subject type exactly.
+Do not replace uploaded baby or animal references with adult human characters.`;
+}
+
+function extractRuntimeFromText(text){
+  const rangeMin = text.match(/(\d+)\s*~\s*(\d+)\s*분/);
+  if(rangeMin) return `${rangeMin[1]}~${rangeMin[2]}분`;
+
+  const min = text.match(/(\d+)\s*분/);
+  if(min) return `${min[1]}분`;
+
+  const sec = text.match(/(\d+)\s*초/);
+  if(sec) return `${sec[1]}초`;
+
+  if(text.includes("시리즈")) return "3~5분";
+  return "60초";
+}
+
+function estimateCutsFromRuntimeText(runtime){
+  const nums = String(runtime).match(/\d+/g);
+  if(!nums) return 8;
+  const maxVal = Number(nums[nums.length - 1]);
+  const isMinute = String(runtime).includes("분");
+  const seconds = isMinute ? maxVal * 60 : maxVal;
+
+  if(seconds <= 15) return 4;
+  if(seconds <= 30) return 6;
+  if(seconds <= 60) return 10;
+  if(seconds <= 90) return 12;
+  if(seconds <= 120) return 16;
+  if(seconds <= 180) return 22;
+  if(seconds <= 240) return 26;
+  return 30;
+}
+
+function extractContentAfterKeyword(text){
+  const m = text.match(/내용\s*[:：]\s*([\s\S]+)/);
+  if(m) return m[1].trim();
+  return text.trim();
+}
+
+const SUBJECT_LIBRARY = [
+  { label:"아기", type:"baby", aliases:["아기","유아","아이","baby","toddler"], detail:"호기심 많은 아기 주인공, 동그란 얼굴, 맑은 눈, 부드러운 피부, 작은 손과 발, 편안한 아기 옷, 사랑스럽고 순수한 표정, 같은 아기 캐릭터 일관성" },
+  { label:"고양이", type:"animal", aliases:["고양이","냥이","cat","kitten"], detail:"고양이 주인공, 부드러운 털, 선명한 눈, 작은 코와 수염, 귀와 꼬리의 특징 유지, 식별 가능한 목걸이 또는 리본, 같은 고양이 캐릭터 일관성" },
+  { label:"강아지", type:"animal", aliases:["강아지","반려견","puppy","dog"], detail:"강아지 주인공, 부드러운 털, 반짝이는 눈, 귀 모양과 꼬리 특징 유지, 식별 가능한 목걸이, 활발하고 따뜻한 표정, 같은 강아지 캐릭터 일관성" },
+  { label:"토끼", type:"animal", aliases:["토끼","rabbit","bunny"], detail:"토끼 주인공, 긴 귀, 둥근 눈, 부드러운 털, 작은 앞발, 귀 움직임과 꼬리 특징 유지, 같은 토끼 캐릭터 일관성" },
+  { label:"새", type:"animal", aliases:["새","앵무새","bird","parrot"], detail:"새 주인공, 깃털 색과 무늬, 부리 모양, 날개와 꼬리깃 디테일, 또렷한 눈, 같은 새 캐릭터 일관성" },
+  { label:"햄스터", type:"animal", aliases:["햄스터","hamster"], detail:"햄스터 주인공, 작은 몸집, 둥근 볼, 짧은 발, 부드러운 털, 귀여운 표정, 같은 햄스터 캐릭터 일관성" },
+  { label:"말", type:"animal", aliases:["말","horse"], detail:"말 주인공, 윤기 있는 갈기, 강한 다리, 눈빛과 털색, 안장 또는 장식 소품, 같은 말 캐릭터 일관성" },
+  { label:"여우", type:"animal", aliases:["여우","fox"], detail:"여우 주인공, 뾰족한 귀, 풍성한 꼬리, 붉은 털색, 민첩하고 영리한 표정, 같은 여우 캐릭터 일관성" },
+  { label:"사자", type:"animal", aliases:["사자","lion"], detail:"사자 주인공, 풍성한 갈기 또는 선명한 털색, 강한 눈빛, 발과 꼬리 디테일, 같은 사자 캐릭터 일관성" },
+  { label:"호랑이", type:"animal", aliases:["호랑이","tiger"], detail:"호랑이 주인공, 선명한 줄무늬, 강한 눈빛, 큰 발, 꼬리와 털 패턴 유지, 같은 호랑이 캐릭터 일관성" },
+  { label:"곰", type:"animal", aliases:["곰","bear"], detail:"곰 주인공, 둥근 귀, 큰 몸집, 부드러운 털, 따뜻하거나 듬직한 표정, 같은 곰 캐릭터 일관성" },
+  { label:"판다", type:"animal", aliases:["판다","panda"], detail:"판다 주인공, 흑백 털 패턴, 둥근 눈가 무늬, 통통한 몸집, 같은 판다 캐릭터 일관성" },
+  { label:"펭귄", type:"animal", aliases:["펭귄","penguin"], detail:"펭귄 주인공, 흑백 깃털, 작은 날개, 뒤뚱거리는 자세, 부리와 발 색 유지, 같은 펭귄 캐릭터 일관성" },
+  { label:"거북이", type:"animal", aliases:["거북이","turtle"], detail:"거북이 주인공, 등껍질 무늬, 짧은 다리, 온순한 눈, 느긋한 움직임, 같은 거북이 캐릭터 일관성" },
+  { label:"돌고래", type:"animal", aliases:["돌고래","dolphin"], detail:"돌고래 주인공, 매끄러운 피부, 등지느러미, 밝은 눈, 유연한 몸선, 같은 돌고래 캐릭터 일관성" },
+  { label:"물고기", type:"animal", aliases:["물고기","fish"], detail:"물고기 주인공, 비늘 색과 무늬, 지느러미 모양, 눈과 꼬리 디테일, 같은 물고기 캐릭터 일관성" },
+  { label:"나비", type:"animal", aliases:["나비","butterfly"], detail:"나비 주인공, 날개 패턴과 색상, 더듬이, 작은 몸체, 우아한 비행 포즈, 같은 나비 캐릭터 일관성" },
+  { label:"꽃", type:"plant", aliases:["꽃","flower"], detail:"꽃 캐릭터, 꽃잎 모양과 색상, 줄기와 잎 디테일, 표정 또는 의인화 포인트, 같은 꽃 캐릭터 일관성" },
+  { label:"장미", type:"plant", aliases:["장미","rose"], detail:"장미 캐릭터, 선명한 꽃잎 겹, 가시와 잎, 붉거나 지정된 색상 팔레트, 같은 장미 캐릭터 일관성" },
+  { label:"해바라기", type:"plant", aliases:["해바라기","sunflower"], detail:"해바라기 캐릭터, 큰 노란 꽃잎, 갈색 중심부, 긴 줄기와 잎, 밝은 표정, 같은 해바라기 캐릭터 일관성" },
+  { label:"나무", type:"plant", aliases:["나무","tree"], detail:"나무 캐릭터, 줄기 형태, 나뭇잎 색과 실루엣, 가지 구조, 자연스러운 표정 또는 의인화 포인트, 같은 나무 캐릭터 일관성" },
+  { label:"선인장", type:"plant", aliases:["선인장","cactus"], detail:"선인장 캐릭터, 초록 몸체, 가시 패턴, 작은 꽃 또는 화분 소품, 같은 선인장 캐릭터 일관성" }
+];
+
+function includesAlias(text, alias){
+  const lower = text.toLowerCase();
+  const key = String(alias).toLowerCase();
+  if(key === "dog") return /\bdog\b|\bpuppy\b/i.test(text);
+  if(key === "cat") return /\bcat\b|\bkitten\b/i.test(text);
+  if(/[a-z0-9]/i.test(key)) return new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\b`, "i").test(text);
+  return hasKoreanAlias(text, alias);
+}
+
+function isHangul(ch){
+  return !!ch && /[가-힣]/.test(ch);
+}
+
+function isBoundaryChar(ch){
+  return !ch || /[\s,.;:!?()\[\]{}'"“”‘’·\/\\|-]/.test(ch);
+}
+
+function hasKoreanAlias(text, alias){
+  const source = String(text || "");
+  const key = String(alias || "");
+  if(!key) return false;
+
+  let idx = source.indexOf(key);
+  while(idx !== -1){
+    const before = source[idx - 1] || "";
+    const after = source[idx + key.length] || "";
+    const after2 = source[idx + key.length + 1] || "";
+    const beforeOk = !isHangul(before) && !/[a-z0-9]/i.test(before);
+    const afterOk =
+      isBoundaryChar(after) ||
+      ("이가은는을를와과도에에서의로".includes(after) && isBoundaryChar(after2));
+
+    if(beforeOk && afterOk) return true;
+    idx = source.indexOf(key, idx + key.length);
+  }
+  return false;
+}
+
+function getDetectedSubjects(text){
+  text = stripPlaceLikeParentheses(text);
+  const found = SUBJECT_LIBRARY.filter(item => item.aliases.some(alias => includesAlias(text, alias)));
+  if(found.length) return found;
+  const lower = text.toLowerCase();
+  if(text.includes("동물") || lower.includes("animal")){
+    return [{ label:"동물", type:"animal", detail:"입력한 종을 기준으로 한 동물 주인공, 종의 특징이 명확한 외형, 털/피부/눈/귀/꼬리 디테일, 식별 가능한 소품, 같은 동물 캐릭터 일관성" }];
+  }
+  if(text.includes("식물") || lower.includes("plant")){
+    return [{ label:"식물", type:"plant", detail:"입력한 종류를 기준으로 한 식물 캐릭터, 잎/줄기/꽃/색상 팔레트 디테일, 같은 식물 캐릭터 일관성" }];
+  }
+  return [];
+}
+
+function stripPlaceLikeParentheses(text){
+  return String(text || "")
+    .replace(/[\w가-힣]+마을\([^)]*\)/g, "")
+    .replace(/[\w가-힣]+공원\([^)]*\)/g, "")
+    .replace(/[\w가-힣]+군\([^)]*\)/g, "")
+    .replace(/[\w가-힣]+고분군\([^)]*\)/g, "")
+    .replace(/[\w가-힣]+관광지\([^)]*\)/g, "");
+}
+
+function formatSubjectList(subjects){
+  if(!subjects.length) return "주인공";
+  if(subjects.length === 1) return subjects[0].label;
+  return subjects.map(s=>s.label).join("와 ");
+}
+
+function hasCreatureOrPlantStory(text){
+  const subjects = getDetectedSubjects(text);
+  return subjects.some(s => ["baby","animal","plant"].includes(s.type));
+}
+
+const CHARACTER_ROLE_LIBRARY = [
+  { label:"여자귀신", aliases:["여자귀신","여자 귀신","여성귀신","여성 귀신"], detail:"긴 머리 또는 입력된 외형을 가진 여자귀신, 창백한 피부, 섬뜩한 눈빛, 공포 분위기, 같은 귀신 캐릭터 일관성" },
+  { label:"남자귀신", aliases:["남자귀신","남자 귀신","남성귀신","남성 귀신"], detail:"입력된 외형을 가진 남자귀신, 창백한 피부, 불안한 실루엣, 공포 분위기, 같은 귀신 캐릭터 일관성" },
+  { label:"귀신", aliases:["귀신","유령","ghost"], detail:"섬뜩한 분위기의 귀신 캐릭터, 흐릿한 실루엣, 창백한 피부 또는 초자연적 외형, 같은 귀신 캐릭터 일관성" },
+  { label:"학생", aliases:["학생","고등학생","중학생","대학생","student"], detail:"학생 캐릭터, 교복 또는 입력된 학생 의상, 가방과 소품, 나이에 맞는 얼굴과 체형, 같은 학생 캐릭터 일관성" },
+  { label:"선생님", aliases:["선생님","교사","teacher"], detail:"선생님 캐릭터, 단정한 의상, 차분한 표정, 교실 또는 교육 관련 소품, 같은 선생님 캐릭터 일관성" },
+  { label:"의사", aliases:["의사","doctor"], detail:"의사 캐릭터, 흰 가운 또는 의료복, 청진기와 의료 소품, 전문적인 분위기, 같은 의사 캐릭터 일관성" },
+  { label:"간호사", aliases:["간호사","nurse"], detail:"간호사 캐릭터, 의료복, 차분하고 따뜻한 표정, 의료 소품, 같은 간호사 캐릭터 일관성" },
+  { label:"경찰", aliases:["경찰","형사","police","detective"], detail:"경찰 또는 형사 캐릭터, 제복 또는 수사복, 배지와 무전기 같은 소품, 같은 경찰 캐릭터 일관성" },
+  { label:"마녀", aliases:["마녀","witch"], detail:"마녀 캐릭터, 마법 의상, 모자 또는 지팡이, 신비로운 표정과 소품, 같은 마녀 캐릭터 일관성" },
+  { label:"공주", aliases:["공주","princess"], detail:"공주 캐릭터, 드레스 또는 궁중 의상, 왕관과 장신구, 우아한 분위기, 같은 공주 캐릭터 일관성" },
+  { label:"왕자", aliases:["왕자","prince"], detail:"왕자 캐릭터, 궁중 의상, 망토 또는 장신구, 단정한 실루엣, 같은 왕자 캐릭터 일관성" },
+  { label:"아이", aliases:["아이","어린이","child"], detail:"아이 캐릭터, 나이에 맞는 작은 체형과 순수한 표정, 입력된 의상과 소품 유지, 같은 아이 캐릭터 일관성" },
+  { label:"노인", aliases:["노인","할머니","할아버지","elderly"], detail:"노년 캐릭터, 나이 든 얼굴과 자세, 입력된 의상과 소품 유지, 같은 노년 캐릭터 일관성" }
+];
+
+function getDetectedCharacterRoles(text){
+  const found = [];
+  CHARACTER_ROLE_LIBRARY.forEach(role => {
+    if(role.aliases.some(alias => includesAlias(text, alias))){
+      found.push(role);
+    }
+  });
+
+  const labels = new Set(found.map(r => r.label));
+  return found.filter(role => {
+    if(role.label === "귀신" && (labels.has("여자귀신") || labels.has("남자귀신"))) return false;
+    if(role.label === "선생님" && /의사\s*선생님|의사선생님/.test(text)) return false;
+    if(role.label === "아이" && text.includes("아기")) return false;
+    return true;
+  });
+}
+
+function detectGenre(text){
+  const lower = text.toLowerCase();
+  if(hasCreatureOrPlantStory(text)) return "가족 판타지 애니메이션 / 감성 어드벤처 / AI 영상";
+  if(text.includes("히어로") || text.includes("초자연") || text.includes("능력") || lower.includes("hero") || lower.includes("superpower")) return "판타지 히어로 드라마 / 초자연 성장물 / 시네마틱 숏폼";
+  if(text.includes("F1") || text.includes("레이싱") || text.includes("서킷")) return "시네마틱 레이싱 필름 / 스포츠 드라마 / 미국 스타일 액션 필름";
+  if(text.includes("숏폼") && text.includes("드라마")) return "숏폼 드라마 / 감성 드라마 / 시리즈";
+  if(text.includes("드라마")) return "드라마 / 감성 시리즈 / 현실 이야기";
+  if(text.includes("광고")) return "광고 / 브랜드 필름 / 숏폼";
+  if(text.includes("여행") || text.includes("관광")) return "관광 홍보 / 여행 브이로그 / 숏폼";
+  if(text.includes("애니")) return "애니메이션 / AI 영상";
+  if(text.includes("뮤직") || text.includes("K-POP") || lower.includes("mv")) return "K-POP MV / 감성 숏폼";
+  return "시네마틱 영상 / AI 영상 / 숏폼";
+}
+
+function detectTopic(text){
+  const subjects = getDetectedSubjects(text);
+  if(subjects.length > 1) return `${formatSubjectList(subjects)}의 작은 모험`;
+  if(subjects.length === 1){
+    if(subjects[0].type === "baby") return "작은 첫걸음";
+    if(subjects[0].type === "plant") return `${subjects[0].label}의 비밀 정원`;
+    return `${subjects[0].label}의 비밀 산책`;
+  }
+  if(text.includes("히어로") || text.includes("초자연") || text.includes("능력")) return "숨겨진 힘이 깨어나는 순간";
+  if(text.includes("F1") || text.includes("레이싱") || text.includes("서킷")) return "LAST LAP";
+  if(text.includes("연애") || text.includes("로맨스")) return "우리의 프레임 (OUR FRAME)";
+  if(text.includes("관광") || text.includes("여행")) return "빛을 따라 걷다";
+  if(text.includes("광고")) return "THE MOMENT";
+  return "CINEMATIC STORY";
+}
+
+function detectCharacter(text){
+  const structuredInput = buildCharactersFromInput(text);
+  const characterLines = splitCharacterInputLines(text);
+  if(structuredInput && characterLines.length > 1 && characterLines.every(line => line.length <= 60)) return structuredInput;
+  const age = text.includes("20대") ? "20대" : text.includes("30대") ? "30대" : "젊은";
+  const lower = text.toLowerCase();
+  const subjects = getDetectedSubjects(text);
+  const hasMan   = text.includes("남자") || text.includes("남성");
+  const hasWoman = text.includes("여자") || text.includes("여성");
+  const sourceDesc = extractContentAfterKeyword(text)
+    .replace(/\s+/g," ")
+    .replace(/한국 애니메이션|한국애니메이션|수채화|애니메이션|시네마틱|실사|픽사|웹툰|만들어줘|그려줘|영상|이미지|프롬프트|스타일/gi,"")
+    .trim();
+
+  if(subjects.length){
+    return subjects.map(subject => `[${subject.label}] ${subject.detail}`).join("\n");
+  }
+
+  const roles = getDetectedCharacterRoles(text);
+  if(roles.length){
+    return roles.map(role => {
+      return `[${role.label}] ${role.detail}, 입력된 의상과 소품을 그대로 유지, 같은 캐릭터 일관성`;
+    }).join("\n");
+  }
+
+  if(hasMan && hasWoman){
+    return `[남자] ${buildHumanCharacterDesc(text, "남자", age)}, 입력된 의상과 소품을 그대로 유지, 같은 얼굴과 캐릭터 일관성
+[여자] ${buildHumanCharacterDesc(text, "여자", age)}, 입력된 의상과 소품을 그대로 유지, 같은 얼굴과 캐릭터 일관성`;
+  }
+  if(hasMan)   return `[남자] ${buildHumanCharacterDesc(text, "남자", age)}, 입력된 의상과 소품을 그대로 유지, 같은 얼굴과 캐릭터 일관성`;
+  if(hasWoman) return `[여자] ${buildHumanCharacterDesc(text, "여자", age)}, 입력된 의상과 소품을 그대로 유지, 한복/전통의상 언급 시 반드시 한복 착용, 같은 얼굴과 캐릭터 일관성`;
+  return "주요 인물, 현실적인 외형, 감정적인 눈빛, 같은 캐릭터 일관성";
+}
+
+function buildHumanCharacterDesc(text, gender, age){
+  const parts = [`${age} 한국 ${gender} 주인공`];
+  if(/한복|고궁|궁궐/.test(text)) parts.push("한복 착용, 전통적인 색감과 장신구");
+  if(/의사|병원|환자/.test(text)) parts.push("의료 현장에 어울리는 단정한 복장");
+  if(/학생|학교|교복/.test(text)) parts.push("학생다운 얼굴과 교복 또는 가방 소품");
+  if(/여행자|관광|여행|홍보/.test(text)) parts.push("여행자 분위기의 편안한 복장과 자연스러운 표정");
+  if(/사이버펑크|cyberpunk|네온/.test(text.toLowerCase())) parts.push("사이버펑크 분위기의 의상과 네온 포인트");
+  if(/판타지|마법|히어로|초자연|능력/.test(text)) parts.push("판타지적 분위기와 상징적인 소품");
+  if(/수채화|watercolor/.test(text.toLowerCase())) parts.push("부드러운 수채화 질감에 어울리는 섬세한 외형");
+  parts.push(gender === "여자" ? "따뜻하지만 선명한 눈빛" : "감정이 드러나는 선명한 눈빛");
+  return parts.join(", ");
+}
+
+function detectMood(text){
+  if(text.includes("연애") || text.includes("로맨스") || text.includes("풋풋")) {
+    return "풋풋함, 설렘, 현실 연애 감성, 따뜻한 필름톤, 감정 중심, 청춘 드라마 분위기";
+  }
+  if(text.includes("웅장")) return "웅장함, 스피드, 에너지, 시네마틱 광고톤";
+  if(text.includes("감성")) return "감성적, 따뜻함, 잔잔한 여운, 필름톤";
+  return "시네마틱, 감정 중심, 자연광, 현실적인 분위기";
+}
+
+
+function makeDetailedLogline(text){
+  const subjects = getDetectedSubjects(text);
+  if(subjects.length){
+    const subjectText = formatSubjectList(subjects);
+    const theme = subjects.some(s=>s.type === "plant") ? "자연과 생명의 작은 변화를" : "낯선 세계를";
+    return `${subjectText}가 일상 속에서 발견한 ${theme} 함께 탐험하며,
+서로를 지켜주는 따뜻한 우정을 배워가는 감성 애니메이션 어드벤처.`;
+  }
+
+  if(text.includes("F1") || text.includes("레이싱") || text.includes("서킷")){
+    return `한계를 넘는 마지막 한 바퀴.
+폭우 직전의 서킷 위에서 젊은 F1 드라이버는 자신의 공포와 맞서며 인생 최고의 레이스를 완성한다.`;
+  }
+
+  if(text.includes("연애") || text.includes("로맨스") || text.includes("풋풋")){
+    return `서로 다른 상처와 외로움을 가진 20대 남녀가 우연한 만남을 통해 가까워지고,
+작은 일상 속에서 천천히 사랑을 배워가는 감성 숏폼 드라마 시리즈.`;
+  }
+
+  if(text.includes("히어로") || text.includes("초자연") || text.includes("능력")){
+    return `평범한 일상을 살던 20대 여성이 어느 날 설명할 수 없는 힘을 얻게 되고,
+그 힘이 자신을 구원하기 위한 선물인지, 세상을 바꾸기 위한 책임인지 선택해야 하는 판타지 히어로 성장담.`;
+  }
+
+  const content = extractContentAfterKeyword(text);
+  if(getDetectedCharacterRoles(text).length){
+    return `서로 다른 위치에 선 인물들이 예상치 못한 사건을 통해 마주하고,
+작은 선택이 누군가의 삶을 바꾸는 따뜻한 감정의 시네마틱 드라마.`;
+  }
+
+  return `평범한 순간에서 시작된 작은 변화가 인물의 내면을 흔들고,
+선택과 갈등을 거쳐 하나의 분명한 메시지로 완성되는 시네마틱 이야기.`;
+}
+
+function makeSimpleSynopsis(text){
+  const subjects = getDetectedSubjects(text);
+  if(subjects.length){
+    const subjectText = formatSubjectList(subjects);
+    const first = subjects[0].label;
+    const companion = subjects.length > 1 ? subjects.slice(1).map(s=>s.label).join("와 ") : "작은 친구";
+    const isPlant = subjects.some(s=>s.type === "plant");
+    if(isPlant && !subjects.some(s=>s.type === "baby" || s.type === "animal")){
+      return `따뜻한 햇살이 비치는 작은 정원.
+${subjectText}는 바람과 빛, 빗방울을 만나며 하루 동안 조금씩 성장한다.
+
+처음에는 세상이 너무 넓고 낯설게 느껴지지만, 흙 속의 작은 생명들과 주변 풍경이 ${subjectText}에게 용기를 준다.
+햇빛이 강해지고 바람이 거세지는 순간에도 ${subjectText}는 자신의 색과 형태를 잃지 않으려 한다.
+
+중반에는 비와 그림자가 찾아와 잠시 시련을 겪는다.
+하지만 뿌리와 잎, 꽃잎의 힘으로 버티며 자연의 리듬을 받아들인다.
+
+마침내 노을빛 아래에서 ${subjectText}는 가장 아름다운 모습으로 피어나고, 정원 전체가 따뜻한 색으로 물든다.
+이 이야기는 식물의 성장, 생명력, 작은 변화가 만드는 감동을 담은 감성 애니메이션이다.`;
+    }
+
+    return `따뜻한 햇살이 들어오는 어느 오후.
+${first}는 방 한구석에서 반짝이는 작은 장난감 지도를 발견하고, 곁에 있던 ${companion}는 호기심 가득한 눈으로 그 지도를 따라가기 시작한다.
+
+둘은 거실의 쿠션 산, 식탁 아래의 어두운 터널, 정원의 풀숲처럼 익숙하지만 새롭게 보이는 공간들을 지나며 작은 모험을 이어간다.
+${subjectText}는 웃음과 놀라움으로 세상을 바라보며, 서로를 조심스럽지만 다정하게 이끈다.
+
+중간에 낯선 그림자와 큰 소리에 놀라 잠시 멈춰 서지만, ${subjectText}는 서로를 바라보며 용기를 얻는다.
+한 친구가 먼저 길을 확인하고, 다른 친구는 그 신호를 믿으며 다시 앞으로 나아간다.
+
+마침내 둘은 노을빛이 드는 창가에서 지도의 마지막 표시를 발견한다.
+그곳에는 대단한 보물이 아니라, 함께한 하루의 추억처럼 반짝이는 작은 장난감 별이 놓여 있다.
+
+엔딩에서는 ${subjectText}가 나란히 쉬고, 공간 안에는 모험의 흔적과 따뜻한 여운이 남는다.
+이 이야기는 ${subjectText}의 순수한 우정, 호기심, 작은 용기를 담은 감성 애니메이션이다.`;
+  }
+
+  if(text.includes("F1") || text.includes("레이싱") || text.includes("서킷")){
+    return `미국 네바다 사막 한가운데 위치한 초대형 F1 서킷.
+석양이 붉게 물드는 순간, 세계 최고의 드라이버들이 시즌 챔피언 자리를 두고 마지막 결승 레이스를 시작한다.
+
+주인공 “에단 콜”은 불안정한 차량 상태와 극한의 압박 속에서도 끝까지 포기하지 않는다.
+엔진은 한계에 도달하고 타이어는 갈려나가지만, 그는 마지막 랩에서 모든 것을 건다.
+
+관중들의 함성, 피트팀의 긴장감, 헬멧 안의 거친 숨소리.
+그리고 시속 350km를 넘나드는 머신.
+
+FPV 드론은 머신 사이를 미친 속도로 파고들고, 초고속 슬로우모션 카메라는 불꽃 튀는 타이어와 드라이버의 눈빛을 포착한다.
+
+마지막 코너.
+아웃라인 바깥까지 밀어붙인 드리프트.
+0.2초 차이의 역전.
+
+체커 플래그가 휘날리는 순간, 엔진 사운드는 음악처럼 폭발하고
+에단은 미국 밤하늘 아래 챔피언이 된다.
+
+이 작품은 단순한 레이싱 영상이 아니라
+“속도에 인생을 거는 사람들”의 감정을 담은 미국 스타일 시네마틱 레이싱 필름이다.`;
+  }
+
+  if(text.includes("연애") || text.includes("로맨스") || text.includes("풋풋")) {
+    return `서울의 바쁜 일상 속.
+영상 촬영 아르바이트를 하는 남자 “도윤”은 사람들 사이에 있어도 늘 혼자다.
+
+카페에서 우연히 만난 여자 “서아”.
+필름카메라를 좋아하고, 순간을 기록하는 것을 좋아하는 그녀는
+도윤의 무표정한 얼굴 속 외로움을 발견한다.
+
+둘은 우연처럼 반복해서 만나게 되고
+함께 사진을 찍고, 밥을 먹고, 밤 산책을 하며
+조금씩 서로의 하루에 스며든다.
+
+하지만 사랑은 항상 타이밍의 문제.
+
+서로 좋아하지만 쉽게 표현하지 못하는 두 사람은
+작은 오해와 엇갈림 속에서 멀어질 위기를 맞는다.
+
+그리고 결국.
+서로의 진심을 확인하게 되는 순간.
+
+“좋아한다는 건…
+누군가의 하루가 계속 신경 쓰이는 거더라.”
+
+풋풋하고 현실적인 연애 감성을 담은
+시네마틱 숏폼 드라마 시리즈.`;
+  }
+
+  if(text.includes("히어로") || text.includes("초자연") || text.includes("능력")){
+    return `도시의 소음 속에서 지친 하루를 보내던 20대 여성은 자신이 특별하지 않다고 믿는다.
+반복되는 일상, 무심한 사람들, 아무도 알아주지 않는 외로움 속에서 그녀는 조용히 버티며 살아간다.
+
+그러던 어느 밤.
+갑작스러운 사고를 마주한 순간, 그녀의 안에서 설명할 수 없는 빛과 힘이 깨어난다.
+시간이 잠시 멈춘 듯하고, 손끝에는 낯선 에너지가 흐르며, 그녀는 자신도 모르게 누군가를 구한다.
+
+처음에는 그 힘이 두렵다.
+평범했던 삶이 무너질까 봐 숨기려 하지만, 주변에서 벌어지는 작은 위험과 부당한 상황들이 계속 그녀를 부른다.
+그녀는 도망치고 싶지만, 외면할 수 없는 마음 때문에 다시 한 걸음 앞으로 나아간다.
+
+중반부에는 힘의 대가가 드러난다.
+능력을 사용할수록 몸과 마음은 흔들리고, 그녀가 지키고 싶은 사람들마저 위험에 가까워진다.
+그러나 그녀는 깨닫는다.
+이 힘은 완벽한 영웅이 되라는 명령이 아니라, 두려움 속에서도 누군가의 편에 서라는 용기라는 것을.
+
+클라이맥스에서 그녀는 거대한 위기 앞에 선다.
+도망치면 안전할 수 있지만, 그러면 이전의 자신으로 돌아가야 한다.
+그녀는 마침내 자신의 힘을 받아들이고, 어둠 속에서 빛나는 첫 번째 히어로의 순간을 완성한다.
+
+마지막에는 모든 것이 완전히 해결되지는 않는다.
+하지만 그녀는 더 이상 평범함 뒤에 숨지 않는다.
+처음으로 자신의 이름과 힘을 스스로 선택하며, 새로운 이야기가 시작된다.`;
+  }
+
+  if(getDetectedCharacterRoles(text).length){
+    return `이야기는 조용한 일상 속 작은 이상 징후에서 시작된다.
+누군가는 도움을 필요로 하고, 또 다른 누군가는 그 마음을 외면하지 못한 채 한 걸음 다가간다.
+
+처음에는 두 사람 사이에 뚜렷한 거리가 있다.
+말하지 못한 사정, 쉽게 믿을 수 없는 상황, 서로 다른 두려움이 공기처럼 흐른다.
+하지만 작은 친절과 조심스러운 시선이 쌓이면서 관계는 천천히 움직이기 시작한다.
+
+중반에는 예상치 못한 위기가 찾아온다.
+주인공은 자신이 감당할 수 없는 일이라고 생각하지만, 눈앞의 사람을 포기할 수 없다는 마음 때문에 다시 선택의 순간으로 돌아온다.
+
+후반에는 가장 중요한 감정적 클라이맥스가 펼쳐진다.
+인물들은 서로를 통해 상처와 두려움을 마주하고, 그 과정에서 단순한 구조나 사건을 넘어 마음을 살리는 선택을 하게 된다.
+
+마지막에는 완전히 거창한 기적보다 조용한 변화가 남는다.
+누군가의 하루가 조금 더 따뜻해지고, 관객은 짧은 이야기 안에서 사람을 향한 다정한 용기를 느낀다.`;
+  }
+
+  return `이야기는 주인공의 평범한 하루에서 시작된다.
+겉으로는 아무 일도 일어나지 않는 것처럼 보이지만, 주인공은 마음속 깊은 곳에서 설명하기 어려운 결핍과 바람을 품고 있다.
+
+초반에는 인물이 놓인 공간과 분위기를 선명하게 보여준다.
+주인공이 어떤 표정으로 하루를 견디는지, 무엇을 원하지만 말하지 못하는지, 관객이 자연스럽게 이해하도록 감정의 출발점을 만든다.
+
+중반에는 작은 사건이 발생한다.
+그 사건은 처음에는 사소해 보이지만, 점점 주인공의 선택을 요구하는 방향으로 커진다.
+주인공은 피하고 싶어 하지만, 결국 자신이 외면해 온 감정과 마주하게 된다.
+
+후반에는 가장 강한 시각적 장면과 감정적 선택이 동시에 찾아온다.
+주인공은 두려움이나 망설임을 넘어서고, 처음 입력한 주제의 핵심 메시지를 행동으로 보여준다.
+
+마지막에는 완전히 닫힌 결말보다 여운 있는 장면으로 마무리한다.
+관객은 짧은 영상 안에서도 한 사람의 변화와 시작을 본 느낌을 받는다.`;
+}
+
+function cleanStoryLine(line){
+  return String(line || "")
+    .replace(/^\s*[-*•\d]+[.)]?\s*/,"")
+    .replace(/^(내용|스토리|줄거리|시놉시스|요청내용|관광지|장소|배경|코스|촬영지|스타일|러닝타임|길이|시간|화면비율|비율|사이즈)\s*[:：]?\s*/i,"")
+    .trim();
+}
+
+function getStructuredStoryContext(text){
+  const sourceCharacter = $("sourceCharacter") ? $("sourceCharacter").value.trim() : "";
+  const sourceContent = $("sourceContent") ? $("sourceContent").value.trim() : "";
+  const combined = [sourceContent, text].filter(Boolean).join("\n");
+  const sections = parseAutoInputSections(combined);
+  const characters = splitCharacterInputLines(sourceCharacter || sections.character || "").map(inferCharacterLabel).filter(Boolean);
+  const style = sections.style || detectStyle(combined);
+  const runtime = sections.runtime || extractRuntimeFromText(combined);
+  const places = (sections.places || "")
+    .replace(/\r/g,"")
+    .split("\n")
+    .map(cleanStoryLine)
+    .filter(Boolean);
+  const contentLines = (sections.content || sourceContent || text || "")
+    .replace(/\r/g,"")
+    .split("\n")
+    .map(cleanStoryLine)
+    .filter(line => line && !/^\d+\s*$/.test(line))
+    .filter(line => !/^(등장인물|캐릭터|인물)\s*[:：]?/i.test(line));
+
+  const themeLine = contentLines.find(line => !/^\d+[.)]/.test(line)) || contentLines[0] || "작은 사건을 통해 인물의 감정과 관계가 변화하는 이야기";
+  return {
+    characters,
+    style,
+    runtime,
+    places,
+    contentLines,
+    themeLine,
+    mood: detectMood(combined || text)
+  };
+}
+
+function joinKoreanList(items){
+  const values = (items || []).filter(Boolean);
+  if(!values.length) return "";
+  if(values.length === 1) return values[0];
+  return values.slice(0,-1).join(", ") + " 그리고 " + values[values.length - 1];
+}
+
+function makeDetailedLogline(text){
+  const ctx = getStructuredStoryContext(text);
+  const who = ctx.characters.length ? joinKoreanList(ctx.characters) : "주인공";
+  const where = ctx.places.length ? ctx.places.slice(0,2).join(", ") : "익숙한 공간";
+  return `${who}가 ${where}에서 ${ctx.themeLine}를 겪으며, 선택과 감정의 변화를 통해 하나의 분명한 메시지에 도달하는 시네마틱 이야기.`;
+}
+
+function makeSimpleSynopsis(text){
+  const ctx = getStructuredStoryContext(text);
+  const who = ctx.characters.length ? joinKoreanList(ctx.characters) : "주인공";
+  const places = ctx.places.length ? ctx.places : ["익숙한 공간", "낯선 장소", "결정적인 순간의 장소"];
+  const theme = ctx.themeLine;
+  const mood = ctx.mood || "시네마틱하고 감정적인 분위기";
+  const firstPlace = places[0] || "익숙한 공간";
+  const midPlace = places[1] || firstPlace;
+  const finalPlace = places[places.length - 1] || midPlace;
+  const eventLine = ctx.contentLines.find(line => line !== theme && !line.includes("러닝타임") && !line.includes("화면비율")) || "작지만 중요한 사건이 주인공의 마음을 흔든다";
+
+  return `이야기는 ${firstPlace}에서 ${who}의 평범한 순간으로 시작된다.
+겉으로는 조용해 보이지만, ${who}는 ${theme}라는 상황 안에서 아직 말하지 못한 바람과 감정을 품고 있다.
+
+초반에는 ${mood}를 바탕으로 인물의 성격, 관계, 공간의 분위기를 선명하게 보여준다.
+관객은 ${who}가 무엇을 바라보고 무엇을 두려워하는지 자연스럽게 이해하게 된다.
+
+중반에는 ${midPlace}에서 ${eventLine}.
+처음에는 사소해 보였던 일이 점점 커지며, ${who}는 피하고 싶었던 선택이나 감정과 마주하게 된다.
+
+후반에는 ${finalPlace}에서 가장 중요한 시각적 장면과 감정적 클라이맥스가 찾아온다.
+${who}는 망설임을 넘어서고, 처음 입력된 이야기의 핵심 메시지를 행동으로 보여준다.
+
+마지막에는 완전히 닫힌 결말보다 여운 있는 장면으로 마무리된다.
+관객은 짧은 영상 안에서도 ${who}의 변화와 새로운 시작을 본 느낌을 받는다.`;
+}
+
+function detectStyle(text){
+  const styleKey = detectVisualStyle(text);
+  const preset = getStylePreset(styleKey);
+  // 스타일 필드에는 프리셋 레이블 + 핵심 키워드만 넣음
+  const styleMap = {
+    realistic: "cinematic commercial film, ultra realistic, Kodak Portra 400 color grading",
+    anime:     "anime style, 2D cel shading, Studio Ghibli quality",
+    koreanAnime:"Korean animation style, clean 2D K-animation, warm cinematic color",
+    pixar:     "Pixar 3D animation style, high-end CGI, Disney quality",
+    "3d":      "photorealistic 3D render, Unreal Engine 5, ray tracing",
+    webtoon:   "Korean webtoon style, manhwa art, clean digital illustration",
+    watercolor:"watercolor illustration, hand-painted, soft pastel",
+    cyberpunk: "cyberpunk aesthetic, neon-lit, Blade Runner inspired",
+    fantasy:   "epic fantasy art, magical atmosphere, painterly quality",
+    retro:     "retro vintage style, film grain, analog aesthetic",
+    horror:    "dark horror aesthetic, cinematic noir, eerie atmosphere"
+  };
+  return styleMap[styleKey] || styleMap.realistic;
+}
+
+function autoFillFromSimpleInput(){
+  const text = getAutoText();
+  if(!text){
+    toast("간단 입력 내용을 작성해주세요");
+    return;
+  }
+
+  const sections = parseAutoInputSections(text);
+  const storyText = [sections.content || text, sections.places ? `관광지:\n${sections.places}` : ""].filter(Boolean).join("\n\n");
+  const characterText = sections.character || stripNonCharacterSections(text);
+  const styleText = [sections.style, text].filter(Boolean).join("\n");
+  const runtime = sections.runtime || extractRuntimeFromText(text);
+  const title = detectTopic(storyText);
+  const genre = detectGenre(storyText);
+  const logline = makeDetailedLogline(storyText);
+  const synopsis = makeSimpleSynopsis(storyText);
+
+  $("topic").value = title;
+  $("genre").value = genre;
+  $("background").value = `LOGLINE
+
+${logline}
+
+SYNOPSIS
+
+${synopsis}`;
+  $("mood").value = detectMood(text);
+  $("character").value = detectCharacter(characterText);
+  $("runtime").value = runtime;
+  $("cutCount").value = estimateCutsFromRuntimeText(runtime);
+  $("style").value = detectStyle(styleText);
+  const ratioChoice = extractAspectRatioChoice([sections.ratio, text].join("\n"));
+  if(ratioChoice && $("aspectRatio")){
+    $("aspectRatio").value = ratioChoice;
+  }
+
+  generateAll();
+  toast("자동 구성 완료");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function composeStructuredInputFromPanel(){
+  const character = $("sourceCharacter") ? $("sourceCharacter").value.trim() : "";
+  const content = $("sourceContent") ? $("sourceContent").value.trim() : "";
+  const parts = [];
+  if(character) parts.push(`등장인물:\n${character}`);
+  if(content) parts.push(content);
+  const combined = parts.join("\n\n").trim();
+  if($("autoInput")) $("autoInput").value = combined;
+  return { combined, character, content };
+}
+
+function syncStoryOutputFields(logline, synopsis){
+  if($("loglineOnly")) $("loglineOnly").value = logline || "";
+  if($("synopsisOnly")) $("synopsisOnly").value = synopsis || "";
+  if($("background")){
+    $("background").value = `LOGLINE
+
+${logline || ""}
+
+SYNOPSIS
+
+${synopsis || ""}`;
+  }
+}
+
+function resolvePanelCharacter(characterText, storyText){
+  const cleanCharacter = String(characterText || "").trim();
+  if(cleanCharacter){
+    const structured = buildCharactersFromInput(cleanCharacter);
+    if(structured) return structured;
+    if(/\[[^\]]+\]/.test(cleanCharacter)) return cleanCharacter;
+    return detectCharacter(cleanCharacter);
+  }
+  return detectCharacter(stripNonCharacterSections(storyText || ""));
+}
+
+function splitCharacterInputLines(text){
+  const rawLines = String(text || "")
+    .replace(/\r/g,"")
+    .split("\n")
+    .map(line => line.replace(/^\s*[-*•\d]+[.)]?\s*/,"").trim())
+    .filter(Boolean);
+
+  const lines = [];
+  rawLines.forEach(line => {
+    if(/\[[^\]]+\]/.test(line)){
+      lines.push(line);
+      return;
+    }
+    line
+      .split(/\s*(?:,|，|\/| 그리고 | 및 | 함께 )\s*/g)
+      .map(v => v.trim())
+      .filter(Boolean)
+      .forEach(v => lines.push(v));
+  });
+  return [...new Set(lines)];
+}
+
+function inferCharacterLabel(line){
+  const text = String(line || "").trim();
+  if(!text) return "";
+  const tag = text.match(/^\[([^\]]+)\]/);
+  if(tag) return tag[1].trim();
+  const ageMatch = text.match(/(\d{1,3})\s*대/);
+  const agePrefix = ageMatch ? `${ageMatch[1]}대 ` : "";
+  if(/할아버지|노인\s*남|노년\s*남|grandfather|elderly man|old man/i.test(text)) return `${agePrefix}할아버지`.trim();
+  if(/할머니|노인\s*여|노년\s*여|grandmother|elderly woman|old woman/i.test(text)) return `${agePrefix}할머니`.trim();
+  if(/노인|어르신|elderly|senior/i.test(text)) return `${agePrefix}어르신`.trim();
+  if(/로봇|robot|android|cyborg/i.test(text)) return "로봇";
+  if(/고양이|cat|kitten/i.test(text)) return "고양이";
+  if(/강아지|개|dog|puppy/i.test(text)) return "강아지";
+  if(/말|horse/i.test(text)) return "말";
+  if(/토끼|rabbit/i.test(text)) return "토끼";
+  if(/새|bird/i.test(text)) return "새";
+  if(/여자|여성|woman|female/i.test(text)) return text.includes("20대") ? "20대 한국인 여자" : "여자";
+  if(/남자|남성|man|male/i.test(text)) return text.includes("20대") ? "20대 한국인 남자" : "남자";
+  if(/아기|아이|child|baby|toddler/i.test(text)) return "아기";
+  if(/꽃|장미|해바라기|나무|식물|flower|rose|sunflower|tree|plant/i.test(text)) return text;
+  return text.length > 24 ? text.slice(0,24).trim() : text;
+}
+
+function describeCharacterLine(line){
+  const text = String(line || "").trim();
+  const label = inferCharacterLabel(text);
+  const lower = text.toLowerCase();
+
+  if(/^\[[^\]]+\]/.test(text)){
+    const desc = text.replace(/^\[[^\]]+\]\s*/,"").trim();
+    return `[${label}] ${desc || "입력한 설정을 기준으로 한 캐릭터, 외형과 소품 일관성 유지"}`;
+  }
+  if(/할아버지|노인\s*남|노년\s*남|grandfather|elderly man|old man/i.test(text)){
+    const age = (text.match(/(\d{1,3})\s*대/) || [,"70"])[1];
+    return `[${label}] ${age}대 남성 노년 캐릭터, 깊은 주름과 따뜻한 눈빛, 흰머리 또는 희끗한 머리, 입력한 의상과 역할 유지, 지팡이/모자/안경 같은 식별 가능한 소품, 같은 할아버지 캐릭터 일관성`;
+  }
+  if(/할머니|노인\s*여|노년\s*여|grandmother|elderly woman|old woman/i.test(text)){
+    const age = (text.match(/(\d{1,3})\s*대/) || [,"70"])[1];
+    return `[${label}] ${age}대 여성 노년 캐릭터, 부드러운 주름과 온화한 표정, 흰머리 또는 단정한 머리, 입력한 의상과 역할 유지, 가방/안경/스카프 같은 식별 가능한 소품, 같은 할머니 캐릭터 일관성`;
+  }
+  if(/노인|어르신|elderly|senior/i.test(text)){
+    const age = (text.match(/(\d{1,3})\s*대/) || [,"70"])[1];
+    return `[${label}] ${age}대 노년 캐릭터, 나이대가 분명한 얼굴 주름과 체형, 입력한 의상과 역할 유지, 식별 가능한 소품, 같은 어르신 캐릭터 일관성`;
+  }
+  if(/로봇|robot|android|cyborg/i.test(text)){
+    return `[${label}] 로봇 캐릭터, 금속 또는 합성 소재 바디, 눈 또는 센서 디자인, 관절 구조, 컬러 팔레트와 식별 가능한 장치, 같은 로봇 캐릭터 일관성`;
+  }
+  if(/고양이|cat|kitten/i.test(text)){
+    return `[${label}] 고양이 캐릭터, 부드러운 털, 선명한 눈, 귀와 꼬리의 특징 유지, 식별 가능한 목걸이 또는 리본, 같은 고양이 캐릭터 일관성`;
+  }
+  if(/강아지|개|dog|puppy/i.test(text)){
+    return `[${label}] 강아지 캐릭터, 품종이 느껴지는 털과 귀, 맑은 눈, 꼬리와 발 디테일, 식별 가능한 목걸이 또는 소품, 같은 강아지 캐릭터 일관성`;
+  }
+  if(/말|horse/i.test(text)){
+    return `[${label}] 말 캐릭터, 균형 잡힌 체형, 윤기 있는 갈기, 강한 다리, 눈빛과 털색, 안장 또는 장식 소품, 같은 말 캐릭터 일관성`;
+  }
+  if(/토끼|rabbit/i.test(text)){
+    return `[${label}] 토끼 캐릭터, 긴 귀, 둥근 눈, 부드러운 털, 작은 앞발과 꼬리, 같은 토끼 캐릭터 일관성`;
+  }
+  if(/새|bird/i.test(text)){
+    return `[${label}] 새 캐릭터, 깃털 색감, 부리와 날개 실루엣, 눈의 특징, 같은 새 캐릭터 일관성`;
+  }
+  if(/꽃|장미|해바라기|나무|식물|flower|rose|sunflower|tree|plant/i.test(text)){
+    return `[${label}] 식물 캐릭터, 잎과 줄기, 꽃잎 또는 가지의 형태, 색상 팔레트, 질감과 성장 단계, 같은 식물 캐릭터 일관성`;
+  }
+  if(/여자|여성|woman|female/i.test(text)){
+    const age = text.includes("20대") ? "20대" : text.includes("30대") ? "30대" : "젊은";
+    const nationality = /한국|한국인|korean/i.test(text) ? "한국인 " : "";
+    return `[${label}] ${age} ${nationality}여성 캐릭터, 입력한 인상과 의상 유지, 자연스러운 표정, 헤어스타일과 체형 일관성, 같은 인물 캐릭터 일관성`;
+  }
+  if(/남자|남성|man|male/i.test(text)){
+    const age = text.includes("20대") ? "20대" : text.includes("30대") ? "30대" : "젊은";
+    const nationality = /한국|한국인|korean/i.test(text) ? "한국인 " : "";
+    return `[${label}] ${age} ${nationality}남성 캐릭터, 입력한 인상과 의상 유지, 자연스러운 표정, 헤어스타일과 체형 일관성, 같은 인물 캐릭터 일관성`;
+  }
+  if(/아기|아이|child|baby|toddler/i.test(text)){
+    return `[${label}] 아기 캐릭터, 작은 체형, 맑은 눈, 부드러운 피부와 표정, 나이에 맞는 의상과 소품, 같은 아기 캐릭터 일관성`;
+  }
+  if(lower){
+    return `[${label}] ${text} 캐릭터, 입력한 외형과 역할을 유지, 식별 가능한 특징과 소품, 같은 캐릭터 일관성`;
+  }
+  return "";
+}
+
+function buildCharactersFromInput(text){
+  const lines = splitCharacterInputLines(text);
+  if(!lines.length) return "";
+  const items = lines.map(describeCharacterLine).filter(Boolean);
+  return items.join("\n");
+}
+
+function expectedCharacterLabelsFromInput(){
+  const source = $("sourceCharacter") ? $("sourceCharacter").value.trim() : "";
+  const fallback = $("autoInput") ? parseAutoInputSections($("autoInput").value || "").character : "";
+  return splitCharacterInputLines(source || fallback).map(inferCharacterLabel).filter(Boolean);
+}
+
+function missingCharacterLabelsInOutput(){
+  const output = $("character") ? $("character").value : "";
+  return expectedCharacterLabelsFromInput().filter(label => !output.includes(`[${label}]`) && !output.includes(label));
+}
+
+function generateFromInputPanel(){
+  const input = composeStructuredInputFromPanel();
+  if(!input.combined){
+    toast("등장인물과 내용을 입력해주세요");
+    return;
+  }
+
+  const sections = parseAutoInputSections(input.combined);
+  const storyBase = sections.content || input.content || input.combined;
+  const storyText = [storyBase, sections.places ? `관광지:\n${sections.places}` : ""].filter(Boolean).join("\n\n");
+  const styleText = [sections.style, input.combined].filter(Boolean).join("\n");
+  const runtime = sections.runtime || extractRuntimeFromText(input.combined);
+  const logline = makeDetailedLogline(storyText);
+  const synopsis = makeSimpleSynopsis(storyText);
+
+  $("topic").value = detectTopic(storyText);
+  $("genre").value = detectGenre(storyText);
+  syncStoryOutputFields(logline, synopsis);
+  $("mood").value = detectMood(input.combined);
+  $("character").value = resolvePanelCharacter(input.character || sections.character, storyText);
+  $("runtime").value = runtime;
+  $("cutCount").value = estimateCutsFromRuntimeText(runtime);
+  $("style").value = detectStyle(styleText);
+  const ratioChoice = extractAspectRatioChoice([sections.ratio, input.combined].join("\n"));
+  if(ratioChoice && $("aspectRatio")){
+    $("aspectRatio").value = ratioChoice;
+  }
+
+  generateAll();
+  toast("전체 생성 완료");
+}
+
+let promptStore = { image: [], video: [] };
+let selectedPromptIndex = { image: 0, video: 0 };
+
+function renderPromptWorkspace(type, plan, promptMap){
+  const container = $(type + "Cuts");
+  const out = $(type + "Out");
+  const ratioTag = $(type + "RatioTag");
+  const d = data();
+
+  if(!Array.isArray(plan) || !plan.length){
+    plan = makePlan(d);
+  }
+
+  promptStore[type] = plan.map((c,index)=>({
+    no:c.no,
+    title:`CUT ${c.no} — ${c.title || c.scene || "Scene"}`,
+    desc:c.action || c.scene || "프롬프트 설명",
+    phase:c.phase || "",
+    prompt:promptMap && promptMap[c.no] ? promptMap[c.no] : makeFallbackPrompt(type,c,d)
+  }));
+
+  if(out) out.value = promptStore[type].map(item=>item.prompt).join("\n\n");
+  if(ratioTag) ratioTag.textContent = d.aspectRatio || "aspect ratio";
+
+  selectedPromptIndex[type] = 0;
+  renderPromptList(type);
+  selectPromptCut(type,0);
+}
+
+function makeFallbackPrompt(type,c,d){
+  const ratioPrompt = getStrictRatioPrompt(d);
+  const styleKey = getCurrentStyleKey();
+  const preset = getStylePreset(styleKey);
+  const characterReference = getLockedCharacterReference(d, preset);
+  if(type === "video"){
+    return `CUT ${c.no} — ${c.title || c.scene}
+[VISUAL STYLE: ${preset.label}]
+
+${preset.common},
+
+${characterReference},
+
+${c.action},
+camera movement: ${c.camera},
+${preset.cameraStyle},
+${d.mood},
+${d.style},
+${ratioPrompt},
+${preset.videoExtra}`;
+  }
+  return `CUT ${c.no} — ${c.title || c.scene}
+[VISUAL STYLE: ${preset.label}]
+
+${preset.common},
+
+${characterReference},
+
+${c.action},
+ONE CUT ONLY,
+generate only this single cut image,
+do not generate a storyboard sheet,
+do not generate a multi-panel storyboard,
+do not generate a collage,
+${d.mood},
+${d.style},
+${ratioPrompt},
+${preset.imageExtra},
+unique scene composition for cut ${c.no}`;
+}
+
+function renderPromptList(type){
+  const container = $(type + "Cuts");
+  if(!container) return;
+  container.innerHTML = "";
+
+  const search = $(type + "Search");
+  const keyword = (search ? search.value : "").trim().toLowerCase();
+
+  promptStore[type].forEach((item,index)=>{
+    const haystack = `${item.title} ${item.desc} ${item.phase} ${item.prompt}`.toLowerCase();
+    if(keyword && !haystack.includes(keyword)) return;
+
+    const phaseClass = getCutPhaseClass(item.phase);
+    const card = document.createElement("div");
+    card.className = "promptListCard " + phaseClass + (index === selectedPromptIndex[type] ? " active" : "");
+    card.onclick = () => selectPromptCut(type,index);
+    card.innerHTML = `
+      <div class="promptCutTop">
+        <span class="promptCutNum">CUT ${escapeHtml(item.no)}</span>
+        <span class="promptCutPhase">${escapeHtml(item.phase)}</span>
+      </div>
+      <div class="promptCutTitle">${escapeHtml(item.title.replace(/^CUT \d+ — /,""))}</div>
+      <p class="promptCutDesc">${escapeHtml(item.desc)}</p>
+      <div class="promptCutMeta">
+        <span class="promptMetaChip">${escapeHtml((typeof data === "function" ? data().aspectRatio : "ratio") || "ratio")}</span>
+        <span class="promptMetaChip">${type === "image" ? "single frame" : "cinematic motion"}</span>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function selectPromptCut(type,index){
+  const item = promptStore[type][index];
+  if(!item) return;
+
+  selectedPromptIndex[type] = index;
+
+  const title = $(type + "DetailTitle");
+  const desc = $(type + "DetailDesc");
+  const editor = $(type + "CurrentPrompt");
+
+  if(title) title.textContent = item.title;
+  if(desc) desc.textContent = item.desc;
+  if(editor) editor.value = item.prompt;
+
+  renderPromptList(type);
+}
+
+function filterPromptList(type){
+  renderPromptList(type);
+}
+
+function writeClipboard(text, successMessage){
+  const value = String(text || "");
+  const done = () => toast(successMessage || "복사 완료");
+  const fallbackCopy = () => {
+    const ta = document.createElement("textarea");
+    ta.value = value;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try{
+      document.execCommand("copy");
+      done();
+    }catch(err){
+      console.error(err);
+      toast("복사 실패: 브라우저 권한을 확인해주세요");
+    }
+    ta.remove();
+  };
+
+  if(location.protocol !== "file:" && navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(value).then(done).catch(fallbackCopy);
+  }
+  fallbackCopy();
+  return Promise.resolve();
+}
+
+function copyCurrentPrompt(type){
+  const editor = $(type + "CurrentPrompt");
+  if(!editor) return;
+  writeClipboard(editor.value || "", "현재 컷 복사 완료");
+}
+
+function copyAllPromptCards(type){
+  const editor = $(type + "CurrentPrompt");
+  const currentIndex = selectedPromptIndex[type];
+
+  const text = promptStore[type].map((item,index)=>{
+    if(editor && index === currentIndex) return editor.value;
+    return item.prompt;
+  }).join("\n\n");
+
+  writeClipboard(text || "", "전체 복사 완료");
+}
+
+function downloadPromptText(type){
+  const text = promptStore[type].map(item=>item.prompt).join("\n\n");
+  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = type === "image" ? "image_prompts.txt" : "video_prompts.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+
+
+
+
+
+
+async function pgCopyText(type){
+  const box = $(type + "PromptBox");
+  const text = box ? box.value : "";
+  await writeClipboard(text, "복사 완료");
+}
+
+
+
+
+
+let pgStore = { image: [], video: [] };
+let pgSelected = { image: 0, video: 0 };
+
+function safeText(value){
+  return String(value == null ? "" : value);
+}
+
+function pgEscape(text){
+  return safeText(text)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+function pgSetPrompts(type, items){
+  const list = $(type + "Cuts");
+  const out = $(type + "Out");
+  const box = $(type + "PromptBox");
+  const ratio = $(type + "MetaRatio");
+
+  pgStore[type] = Array.isArray(items) ? items : [];
+  pgSelected[type] = 0;
+
+  if(out){
+    const title = type === "image" ? "IMAGE PROMPTS" : "VIDEO PROMPTS";
+    out.value = title + "\n\n" + pgStore[type].map(c=>c.prompt).join("\n\n------------------------------\n\n");
+  }
+
+  const d = typeof data === "function" ? data() : { aspectRatio: "9:16 vertical" };
+  if(ratio) ratio.textContent = d.aspectRatio || "aspect ratio";
+
+  pgRenderList(type);
+
+  if(pgStore[type].length){
+    pgSelectCut(type,0);
+  }else{
+    if(box) box.value = "";
+    const koBox = $(type + "KoPromptBox");
+    if(koBox) koBox.value = "";
+    const title = $(type + "ViewerTitle");
+    const desc = $(type + "ViewerDesc");
+    const phase = $(type + "MetaPhase");
+    if(title) title.textContent = "CUT 없음";
+    if(desc) desc.textContent = "생성된 프롬프트가 없습니다. 입력 후 전체 생성을 눌러주세요.";
+    if(phase) phase.textContent = "-";
+  }
+}
+
+function pgRenderList(type){
+  const list = $(type + "Cuts");
+  if(!list) return;
+
+  const search = $(type + "PgSearch");
+  const q = search ? search.value.toLowerCase() : "";
+  list.innerHTML = "";
+
+  pgStore[type].forEach((cut,index)=>{
+    const target = `${cut.num} ${cut.title} ${cut.phase} ${cut.desc} ${cut.prompt}`.toLowerCase();
+    if(q && !target.includes(q)) return;
+
+    const phaseClass = getCutPhaseClass(cut.phase);
+    const card = document.createElement("div");
+    card.className = "pg-cut-card " + phaseClass + (index === pgSelected[type] ? " active" : "");
+    card.onclick = () => pgSelectCut(type,index);
+    card.innerHTML = `
+      <div class="pg-cut-top">
+        <span class="pg-cut-num">CUT ${pgEscape(cut.num)}</span>
+        <span class="pg-badge">${pgEscape(cut.phase)}</span>
+      </div>
+      <div class="pg-cut-title">${pgEscape(getCutSimpleLabel(cut))}</div>
+      <div class="promptCutMeta">
+        <span class="promptMetaChip">${pgEscape((typeof data === "function" ? data().aspectRatio : "ratio") || "ratio")}</span>
+        <span class="promptMetaChip">${type === "image" ? "single frame" : "cinematic motion"}</span>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function pgSelectCut(type,index){
+  const cut = pgStore[type][index];
+  if(!cut) return;
+
+  pgSelected[type] = index;
+
+  const title = $(type + "ViewerTitle");
+  const desc = $(type + "ViewerDesc");
+  const phase = $(type + "MetaPhase");
+  const box = $(type + "PromptBox");
+  const koBox = $(type + "KoPromptBox");
+
+  if(title) title.textContent = `CUT ${cut.num} — ${cut.title}`;
+  if(desc) desc.textContent = cut.desc;
+  if(phase) phase.textContent = cut.phase;
+  if(box) box.value = cut.prompt;
+  if(koBox) koBox.value = cut.koPrompt || "";
+
+  pgRenderList(type);
+}
+
+function getCutSimpleLabel(cut){
+  const raw = String(cut.title || cut.desc || "");
+  const cleaned = raw
+    .replace(/^CUT\s*\d+\s*[—-]\s*/i,"")
+    .replace(/\s*\/\s*(오프닝|전개|감정 장면|클라이맥스|엔딩)$/,"")
+    .trim();
+  if(cleaned.length <= 18) return cleaned || cut.phase || "장면";
+  return cleaned.slice(0, 18) + "...";
+}
+
+function pgCopyCurrent(type){
+  const box = $(type + "PromptBox");
+  const text = box ? box.value : "";
+  writeClipboard(text, "현재 컷 복사 완료");
+}
+
+function pgCopyAll(type){
+  const out = $(type + "Out");
+  let all = "";
+
+  if(out && out.value && out.value.trim()){
+    all = out.value;
+  }else if(pgStore[type] && pgStore[type].length){
+    all = pgStore[type].map(c => c.prompt).join("\n\n------------------------------\n\n");
+  }
+
+  writeClipboard(all || "", "전체 프롬프트 복사 완료");
+}
+
+function pgDownloadTxt(type){
+  const all = pgStore[type].map(c => c.prompt).join("\n\n------------------------------\n\n");
+  const blob = new Blob([all], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = type === "image" ? "image-prompts.txt" : "video-prompts.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+
+function detectStoryType(d){
+  const all = `${d.topic} ${d.genre} ${d.synopsis} ${d.logline} ${d.mood}`.toLowerCase();
+  if(all.includes("f1") || all.includes("레이싱") || all.includes("서킷") || all.includes("드라이버")) return "racing";
+  if(all.includes("연애") || all.includes("로맨스") || all.includes("카페") || all.includes("20대 남자")) return "romance";
+  return "generic";
+}
+
+function getRichStoryboardRows(d){
+  const type = detectStoryType(d);
+
+  if(type === "racing"){
+    return [
+      {cut:1, scene:"미국 사막 서킷 오프닝", camera:"드론 와이드", emotion:"압도감"},
+      {cut:2, scene:"머신 엔진 점화", camera:"매크로 클로즈업", emotion:"긴장"},
+      {cut:3, scene:"헬멧 착용", camera:"슬로우 푸쉬인", emotion:"집중"},
+      {cut:4, scene:"스타트 라인 대기", camera:"FPV 오비트", emotion:"숨막힘"},
+      {cut:5, scene:"레이스 시작", camera:"초고속 트래킹", emotion:"폭발"},
+      {cut:6, scene:"차량 간 추월", camera:"FPV 드론 체이스", emotion:"스릴"},
+      {cut:7, scene:"타이어 스파크", camera:"1000fps 슬로우모션", emotion:"위험"},
+      {cut:8, scene:"피트스탑", camera:"핸드헬드", emotion:"긴박함"},
+      {cut:9, scene:"마지막 랩 진입", camera:"헬리 드론", emotion:"극한"},
+      {cut:10, scene:"최종 코너 드리프트", camera:"로우앵글", emotion:"절정"},
+      {cut:11, scene:"체커 플래그", camera:"크레인 업", emotion:"해방감"},
+      {cut:12, scene:"우승 세리머니", camera:"360 오비트 드론", emotion:"감동"}
+    ];
+  }
+
+  if(type === "romance"){
+    return [
+      {cut:1, scene:"서울 저녁 거리", camera:"Drone Wide", emotion:"외로움"},
+      {cut:2, scene:"카페 창가 도윤", camera:"Slow Push In", emotion:"공허함"},
+      {cut:3, scene:"서아 입장", camera:"Handheld Follow", emotion:"첫 인상"},
+      {cut:4, scene:"카메라 떨어짐", camera:"Quick Tilt Down", emotion:"당황"},
+      {cut:5, scene:"도윤이 카메라 주움", camera:"Medium Close", emotion:"어색함"},
+      {cut:6, scene:"첫 눈 마주침", camera:"Extreme Close Up", emotion:"설렘"},
+      {cut:7, scene:"함께 웃음", camera:"Orbit Shot", emotion:"따뜻함"},
+      {cut:8, scene:"각자 헤어짐", camera:"Pull Back", emotion:"아쉬움"},
+      {cut:9, scene:"뒤돌아보는 서아", camera:"Slow Motion", emotion:"궁금함"},
+      {cut:10, scene:"엔딩 서울 야경", camera:"Drone Out", emotion:"기대감"}
+    ];
+  }
+
+  const baseScenes = d.scenes && d.scenes.length ? d.scenes : ["오프닝", "주인공 등장", "전개", "위기", "클라이맥스", "엔딩"];
+  return baseScenes.map((scene,i)=>({
+    cut:i+1,
+    scene,
+    camera:["Drone Wide","Slow Push In","Tracking Shot","Close Up","Orbit Shot","Pull Back"][i%6],
+    emotion:["오프닝","전개","긴장","감정","클라이맥스","여운"][i%6]
+  }));
+}
+
+function getOnePageStoryboardItems(d,rows){
+  const type = detectStoryType(d);
+
+  if(type === "racing"){
+    return [
+      "사막 서킷 전경",
+      "F1 머신 FPV 추격 장면",
+      "초고속 타이어 클로즈업",
+      "드라이버 눈빛 매크로샷",
+      "피트스탑",
+      "체커 플래그",
+      "우승 세리머니",
+      "미국 석양 색감 흐름",
+      "붉은 네온 계열 컬러 무드",
+      "영화 포스터 스타일 레이아웃"
+    ];
+  }
+
+  if(type === "romance"){
+    return [
+      "카페 첫 만남",
+      "지하철 재회",
+      "한강 야경",
+      "비 오는 우산씬",
+      "사진 촬영 장면",
+      "감정 클로즈업",
+      "마지막 손잡는 장면",
+      "따뜻한 필름톤",
+      "Netflix 로맨스 드라마 레이아웃",
+      "시네마틱 감정 흐름"
+    ];
+  }
+
+  return rows.map(r=>r.scene);
+}
+
+function getCutImageSizeRule(d){
+  const ratioPrompt = getStrictRatioPrompt(d);
+  const isWide = String(d.aspectRatio || "").toLowerCase().includes("16:9");
+  return {
+    label: isWide ? "16:9 가로 컷 이미지" : "9:16 세로 컷 이미지",
+    size: isWide ? "1920x1080" : "1080x1920",
+    text: ratioPrompt
+  };
+}
+
+function buildImageStoryboardPrompt(d, rows, preset){
+  const sizeRule = getCutImageSizeRule(d);
+  const styleName = preset ? preset.label : "selected visual style";
+  const character = d.character || "main character from the character sheet";
+  const cutLines = rows.map(r => `CUT ${r.cut}: ${r.scene} / camera: ${r.camera} / emotion: ${r.emotion}`).join("\n");
+  const isVertical = String(d.aspectRatio || "").toLowerCase().includes("9:16");
+  const cutPanelRule = isVertical
+    ? `Every cinematic cut image panel in the storyboard must be a 9:16 vertical frame, 1080x1920 composition, tall portrait panel, no 16:9 landscape cut panels.`
+    : `Every cinematic cut image panel in the storyboard must be a 16:9 horizontal frame, 1920x1080 composition, wide landscape panel, no 9:16 vertical cut panels.`;
+  return `IMAGE STORYBOARD PROMPT
+[VISUAL STYLE: ${styleName}]
+
+Create a professional image storyboard sheet where the story and characters are visible together.
+Use the selected style consistently across the entire board.
+The board must look like a clean production storyboard reference sheet:
+- left column: STORYBOARD table with cut number, scene, camera, emotion
+- center: cinematic image panels for each cut, numbered clearly
+- right column: ONE PAGE STORYBOARD with short scene summary and thumbnail panel
+- bottom strip: CHARACTER REFERENCE sheet, full body, facial expressions, costume, props, key accessories
+
+CUT PANEL ASPECT RATIO:
+${cutPanelRule}
+Each cut panel must visually match the selected output size rule: ${sizeRule.size}.
+Do not use wide horizontal panels when the selected ratio is 9:16.
+Do not mix aspect ratios between cuts.
+
+CHARACTER CONTINUITY:
+${character}
+Use the exact same character identity, outfit, props, hairstyle, face, and color palette in every cut.
+
+STORY CUTS:
+${cutLines}
+
+OUTPUT LAYOUT RULES:
+single complete storyboard sheet,
+character and story must appear together,
+consistent panel size and clean grid,
+white production-board background,
+clear black cut numbers,
+no random character redesign,
+no unrelated scenes,
+no missing character reference strip,
+all styles must follow this same storyboard layout.
+
+SIZE NOTE:
+This storyboard sheet is for preview/reference only.
+For individual image generation, use the cut prompts and ${sizeRule.size} per cut.`;
+}
+
+function getShotListRows(d,rows){
+  const type = detectStoryType(d);
+
+  if(type === "racing"){
+    return [
+      {cut:1, size:"Extreme Wide", move:"Drone Reveal", lens:"18mm", fps:"24fps", length:"4s"},
+      {cut:2, size:"Macro CU", move:"Push In", lens:"85mm", fps:"120fps", length:"3s"},
+      {cut:3, size:"Close Up", move:"Slow Dolly", lens:"50mm", fps:"60fps", length:"4s"},
+      {cut:4, size:"Wide", move:"FPV Orbit", lens:"24mm", fps:"60fps", length:"5s"},
+      {cut:5, size:"Tracking", move:"FPV Chase", lens:"16mm", fps:"120fps", length:"5s"},
+      {cut:6, size:"Low Angle", move:"Side Tracking", lens:"35mm", fps:"120fps", length:"4s"},
+      {cut:7, size:"Macro Slow Motion", move:"Phantom Shot", lens:"100mm", fps:"1000fps", length:"3s"},
+      {cut:8, size:"Medium", move:"Handheld Run", lens:"35mm", fps:"60fps", length:"4s"},
+      {cut:9, size:"Aerial", move:"Helicopter Follow", lens:"24mm", fps:"60fps", length:"5s"},
+      {cut:10, size:"Extreme Low", move:"Drift Follow", lens:"18mm", fps:"240fps", length:"5s"},
+      {cut:11, size:"Wide Hero Shot", move:"Crane Up", lens:"35mm", fps:"60fps", length:"4s"},
+      {cut:12, size:"Hero Orbit", move:"360 FPV Drone", lens:"24mm", fps:"60fps", length:"5s"}
+    ];
+  }
+
+  if(type === "romance"){
+    return [
+      {cut:1, size:"Wide Shot", move:"Drone In", lens:"24mm", fps:"60fps", length:"5s"},
+      {cut:2, size:"Medium Shot", move:"Push In", lens:"50mm", fps:"24fps", length:"6s"},
+      {cut:3, size:"Close Up", move:"Handheld Follow", lens:"85mm", fps:"60fps", length:"4s"},
+      {cut:4, size:"Extreme CU", move:"Slow Dolly", lens:"135mm", fps:"120fps", length:"3s"},
+      {cut:5, size:"Two Shot", move:"Orbit Move", lens:"35mm", fps:"60fps", length:"7s"},
+      {cut:6, size:"Wide Shot", move:"Pull Out", lens:"24mm", fps:"24fps", length:"5s"}
+    ];
+  }
+
+  return rows.map((r,i)=>({
+    cut:r.cut,
+    size:i < 2 ? "Wide Shot" : i < 4 ? "Medium Shot" : "Close Up",
+    move:r.camera,
+    lens:i % 2 === 0 ? "24mm" : "35mm",
+    fps:i % 3 === 0 ? "120fps" : "60fps",
+    length:"4s"
+  }));
+}
+
+function renderRichStoryboard(d, preset){
+  const rows = getRichStoryboardRows(d);
+  const onePage = getOnePageStoryboardItems(d,rows);
+  const shotRows = getShotListRows(d,rows);
+  const sizeRule = getCutImageSizeRule(d);
+  const esc = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+  return `
+<div class="storyCard">
+  <h2>STORYBOARD</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>컷</th>
+        <th>장면</th>
+        <th>카메라</th>
+        <th>감정</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(r=>`
+      <tr>
+        <td>${esc(r.cut)}</td>
+        <td>${esc(r.scene)}</td>
+        <td>${esc(r.camera)}</td>
+        <td>${esc(r.emotion)}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table>
+</div>
+
+<div class="storyCard">
+  <h2>CUT IMAGE OUTPUT RULE</h2>
+  <p style="white-space:pre-wrap;color:var(--muted);line-height:1.55;margin:0">${esc(`${sizeRule.label}
+각 컷별 이미지는 반드시 ${sizeRule.size} 단일 이미지로 출력.
+스토리보드 한 장짜리 콜라주, 16:9 와이드 보드, 여러 컷 합성 이미지를 만들지 말 것.
+컷 1개 = 이미지 1장 = ${sizeRule.size}.
+
+${sizeRule.text}`)}</p>
+</div>
+
+<div class="storyCard">
+  <h2>ONE PAGE STORYBOARD</h2>
+  <p style="color:var(--muted);line-height:1.6;margin-top:0">아래는 장면 흐름 확인용 요약입니다. 이미지 생성은 반드시 컷별 단일 이미지 규칙을 따릅니다.</p>
+  <div class="storyGrid">
+    ${onePage.map((item,i)=>`
+      <div class="storyItem">
+        <h4>${esc(i+1)}</h4>
+        <div>${esc(item)}</div>
+      </div>
+    `).join("")}
+  </div>
+</div>
+
+${preset ? renderCharacterContinuityCard(d, preset) : ""}
+
+<div class="storyCard">
+  <h2>IMAGE STORYBOARD PROMPT</h2>
+  <p style="white-space:pre-wrap;color:var(--muted);line-height:1.55;margin:0">${esc(buildImageStoryboardPrompt(d, rows, preset))}</p>
+</div>
+
+<div class="storyCard">
+  <h2>SHOT LIST</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>컷</th>
+        <th>샷사이즈</th>
+        <th>카메라무브</th>
+        <th>렌즈</th>
+        <th>FPS</th>
+        <th>길이</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${shotRows.map(r=>`
+      <tr>
+        <td>${esc(r.cut)}</td>
+        <td>${esc(r.size)}</td>
+        <td>${esc(r.move)}</td>
+        <td>${esc(r.lens)}</td>
+        <td>${esc(r.fps)}</td>
+        <td>${esc(r.length)}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table>
+</div>`;
+}
+
+
+function getStrictRatioPrompt(d){
+  const ratio = String(d.aspectRatio || "").toLowerCase();
+
+  if(ratio.includes("16:9")){
+    return `aspect ratio: 16:9 horizontal,
+exact output size: 1920x1080 pixels,
+each cut image must be 1920px wide and 1080px tall,
+strict 16:9 landscape frame,
+all cuts must use the same 16:9 canvas size,
+consistent wide cinematic composition,
+no vertical crop,
+no mixed aspect ratios,
+no 9:16 output,
+no collage layout,
+single full-frame image`;
+  }
+
+  return `aspect ratio: 9:16 vertical,
+exact output size: 1080x1920 pixels,
+each cut image must be 1080px wide and 1920px tall,
+strict 9:16 vertical frame,
+all cuts must use the same 9:16 canvas size,
+consistent vertical cinematic composition,
+no horizontal crop,
+no mixed aspect ratios,
+no 16:9 output,
+no collage layout,
+single full-frame image`;
+}
+
+function getOutputSizeLabel(d){
+  return String(d.aspectRatio || "").toLowerCase().includes("16:9") ? "1920x1080" : "1080x1920";
+}
+
+function compactText(value){
+  return String(value || "")
+    .replace(/\[[^\]]+\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function translateCharacterLabelToEnglish(label){
+  const text = String(label || "").toLowerCase();
+  if(/남자\s*아기|남아|baby boy|boy baby/.test(text)) return "baby boy character";
+  if(/여자\s*아기|여아|baby girl|girl baby/.test(text)) return "baby girl character";
+  if(/할아버지|grandfather|elderly man|old man/.test(text)) return "elderly grandfather character";
+  if(/할머니|grandmother|elderly woman|old woman/.test(text)) return "elderly grandmother character";
+  if(/로봇|robot|android|cyborg/.test(text)) return "robot character";
+  if(/카메라|camera/.test(text)) return "camera prop";
+  if(/고양이|cat|kitten/.test(text)) return "cat character";
+  if(/강아지|개|dog|puppy/.test(text)) return "dog character";
+  if(/말|horse/.test(text)) return "horse character";
+  if(/토끼|rabbit/.test(text)) return "rabbit character";
+  if(/새|bird/.test(text)) return "bird character";
+  if(/아기|아이|baby|child|toddler/.test(text)) return "baby character";
+  if(/꽃|장미|해바라기|나무|식물|flower|rose|sunflower|tree|plant/.test(text)) return "plant character";
+  if(/20대/.test(text) && /여자|여성|woman|female/.test(text)) return "Korean woman in her 20s";
+  if(/30대/.test(text) && /여자|여성|woman|female/.test(text)) return "Korean woman in her 30s";
+  if(/여자|여성|woman|female/.test(text)) return "female character";
+  if(/20대/.test(text) && /남자|남성|man|male/.test(text)) return "Korean man in his 20s";
+  if(/30대/.test(text) && /남자|남성|man|male/.test(text)) return "Korean man in his 30s";
+  if(/남자|남성|man|male/.test(text)) return "male character";
+  return toEnglishPromptText(label) || "character";
+}
+
+function englishCharacterSummary(charText){
+  const text = String(charText || "").trim();
+  if(!text) return "same main character";
+
+  const sections = [...text.matchAll(/\[([^\]]+)\]\s*([\s\S]*?)(?=\n?\[[^\]]+\]|$)/g)];
+  if(sections.length){
+    return sections.map(match => {
+      const label = translateCharacterLabelToEnglish(match[1]);
+      const desc = toEnglishPromptText(match[2]);
+      return desc ? `${label}, ${desc}` : label;
+    }).join("; ");
+  }
+
+  return toEnglishPromptText(text) || "same main character";
+}
+
+function toEnglishPromptText(value){
+  let text = String(value || "");
+  const replacements = [
+    [/남자\s*아기|남아|아기\s*남자/g, "baby boy"],
+    [/여자\s*아기|여아|아기\s*여자/g, "baby girl"],
+    [/(\d{1,3})\s*대\s*할아버지/g, "$1s elderly grandfather"],
+    [/(\d{1,3})\s*대\s*할머니/g, "$1s elderly grandmother"],
+    [/할아버지/g, "elderly grandfather"],
+    [/할머니/g, "elderly grandmother"],
+    [/로봇/g, "robot"],
+    [/카메라/g, "camera"],
+    [/20대\s*한국인\s*여자|20대\s*한국\s*여성|20대\s*여성|20대\s*여자/g, "Korean woman in her 20s"],
+    [/30대\s*한국인\s*여자|30대\s*한국\s*여성|30대\s*여성|30대\s*여자/g, "Korean woman in her 30s"],
+    [/20대\s*한국인\s*남자|20대\s*한국\s*남성|20대\s*남성|20대\s*남자/g, "Korean man in his 20s"],
+    [/30대\s*한국인\s*남자|30대\s*한국\s*남성|30대\s*남성|30대\s*남자/g, "Korean man in his 30s"],
+    [/한국인|한국/g, "Korean"],
+    [/여자|여성/g, "woman"],
+    [/남자|남성/g, "man"],
+    [/고양이/g, "cat"],
+    [/강아지|개/g, "dog"],
+    [/아기/g, "baby"],
+    [/아이/g, "child"],
+    [/말/g, "horse"],
+    [/토끼/g, "rabbit"],
+    [/새/g, "bird"],
+    [/꽃/g, "flower"],
+    [/장미/g, "rose"],
+    [/해바라기/g, "sunflower"],
+    [/나무/g, "tree"],
+    [/식물/g, "plant"],
+    [/한복/g, "traditional Korean hanbok"],
+    [/고궁|궁궐/g, "Korean royal palace"],
+    [/수채화/g, "watercolor illustration"],
+    [/사이버펑크/g, "cyberpunk"],
+    [/공포/g, "horror"],
+    [/판타지/g, "fantasy"],
+    [/숏폼/g, "short-form video"],
+    [/영상/g, "video"],
+    [/이미지/g, "image"],
+    [/분위기/g, "mood"],
+    [/장면/g, "scene"],
+    [/등장인물/g, "characters"],
+    [/캐릭터/g, "character"],
+    [/같은/g, "same"],
+    [/일관성/g, "consistency"],
+    [/부드러운/g, "soft"],
+    [/선명한/g, "clear"],
+    [/자연스러운/g, "natural"],
+    [/표정/g, "facial expression"],
+    [/의상/g, "outfit"],
+    [/소품/g, "props"],
+    [/유지/g, "preserve"],
+    [/감성/g, "emotional"],
+    [/따뜻한/g, "warm"],
+    [/어두운/g, "dark"],
+    [/긴장/g, "tension"],
+    [/클라이맥스/g, "climax"],
+    [/오프닝/g, "opening"],
+    [/엔딩/g, "ending"]
+  ];
+  replacements.forEach(([pattern, replacement]) => {
+    text = text.replace(pattern, replacement);
+  });
+  return text
+    .replace(/[가-힣]+/g, " ")
+    .replace(/[ㄱ-ㅎㅏ-ㅣ]+/g, " ")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\s*[,，]\s*/g, ", ")
+    .replace(/\s+/g, " ")
+    .replace(/,\s*,+/g, ",")
+    .replace(/^[,\s]+|[,\s]+$/g, "")
+    .trim();
+}
+
+function buildProductionPrompt(type, c, d, preset){
+  const size = getOutputSizeLabel(d);
+  const ratio = String(d.aspectRatio || "").toLowerCase().includes("16:9") ? "16:9 horizontal" : "9:16 vertical";
+  const character = englishCharacterSummary(d.character);
+  const style = `${preset.common}`.split(",")[0].replace(/\n/g, " ").trim();
+  const base = [
+    toEnglishPromptText(c.action || c.scene) || `cinematic scene for cut ${c.no}`,
+    character,
+    style,
+    toEnglishPromptText(d.mood),
+    toEnglishPromptText(d.style),
+    type === "video" ? `camera movement: ${toEnglishPromptText(c.camera) || "smooth cinematic camera movement"}` : "single full-frame image",
+    type === "video" ? preset.videoExtra : preset.imageExtra,
+    `same character consistency`,
+    `${ratio}`,
+    `${size}`,
+    `one cut only`
+  ];
+
+  if(type === "image"){
+    base.push("no collage, no storyboard sheet, no text, no logo");
+  }else{
+    base.push("smooth cinematic motion, no collage, no storyboard sheet, no text, no logo");
+  }
+
+  return base.filter(Boolean).join(", ");
+}
+
+function buildKoreanPromptCheck(type, c, d, preset){
+  const size = getOutputSizeLabel(d);
+  return `CUT ${c.no} 설명
+장면: ${c.title || c.scene}
+연출: ${c.action}
+${type === "video" ? `카메라: ${c.camera}\n` : ""}스타일: ${preset.label}
+등장인물: ${compactText(d.character) || "주요 캐릭터"}
+비율/크기: ${String(d.aspectRatio || "9:16 vertical")} / ${size}
+주의: 컷 하나만 생성, 스토리보드 시트/콜라주 금지, 캐릭터 일관성 유지`;
+}
+
+
+function getCutPhaseClass(phase){
+  const p = String(phase || "").toLowerCase();
+  if(p.includes("오프닝") || p.includes("opening")) return "opening";
+  if(p.includes("전개") || p.includes("development")) return "development";
+  if(p.includes("감정") || p.includes("emotion")) return "emotion";
+  if(p.includes("클라이맥스") || p.includes("climax")) return "climax";
+  if(p.includes("엔딩") || p.includes("ending")) return "ending";
+  return "opening";
+}
+
+function parseCharacters(charText){
+  const text = (charText || "").trim();
+  if(!text) return { mode:"single", male:"", female:"", single:"" };
+
+  const sectionMatches = [...text.matchAll(/\[([^\]]+)\]\s*([\s\S]*?)(?=\n?\[[^\]]+\]|$)/g)]
+    .map(m => ({ label:m[1].trim(), desc:m[2].trim() }))
+    .filter(item => item.label && item.desc);
+  if(sectionMatches.length){
+    return { mode:"sections", sections:sectionMatches };
+  }
+
+  const lines = splitCharacterInputLines(text);
+  if(lines.length > 1){
+    return {
+      mode:"sections",
+      sections:lines.map(line => ({
+        label:inferCharacterLabel(line),
+        desc:describeCharacterLine(line).replace(/^\[[^\]]+\]\s*/,"")
+      }))
+    };
+  }
+
+  const hasMaleKeyword = /남자|남성|할아버지|아버지|소년|man|male|grandfather|old man/i.test(text);
+  const hasFemaleKeyword = /여자|여성|할머니|어머니|소녀|woman|female|grandmother|old woman/i.test(text);
+  if(hasMaleKeyword && hasFemaleKeyword) return { mode:"both", male:text, female:text };
+  if(hasMaleKeyword) return { mode:"male", male:text, female:"" };
+  if(hasFemaleKeyword) return { mode:"female", male:"", female:text };
+  return { mode:"single", male:"", female:"", single:text };
+}
+
+/* ── 캐릭터 텍스트를 남자/여자/단일로 분리 ── */
+function parseCharacters(charText){
+  const text = (charText || "").trim();
+  if(!text) return { mode:"single", male:"", female:"", single:"" };
+
+  /* ── 1순위: [남자] [여자] 명시 태그 ── */
+  const maleTagMatch   = text.match(/\[남자\]([\s\S]*?)(?=\[여자\]|$)/i);
+  const femaleTagMatch = text.match(/\[여자\]([\s\S]*?)(?=\[남자\]|$)/i);
+  if(maleTagMatch || femaleTagMatch){
+    const male   = maleTagMatch   ? maleTagMatch[1].trim()   : "";
+    const female = femaleTagMatch ? femaleTagMatch[1].trim() : "";
+    if(male && female) return { mode:"both",   male, female };
+    if(male)           return { mode:"male",   male, female:"" };
+    if(female)         return { mode:"female", male:"", female };
+  }
+
+  const sectionMatches = [...text.matchAll(/\[([^\]]+)\]\s*([\s\S]*?)(?=\n?\[[^\]]+\]|$)/g)]
+    .map(m => ({ label:m[1].trim(), desc:m[2].trim() }))
+    .filter(item => item.label && item.desc);
+  if(sectionMatches.length){
+    return { mode:"sections", sections:sectionMatches };
+  }
+
+  /* ── 2순위: 전체 텍스트에 남/여 키워드가 모두 존재하는지 먼저 확인 ── */
+  const hasMaleKeyword   = /남자|남성|男/i.test(text);
+  const hasFemaleKeyword = /여자|여성|女/i.test(text);
+
+  /* 남녀 모두 언급 → 줄 단위로 분리 시도 */
+  if(hasMaleKeyword && hasFemaleKeyword){
+    const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+
+    const maleLines   = [];
+    const femaleLines = [];
+    const sharedLines = [];
+
+    lines.forEach(line => {
+      const lm = /남자|남성|男/i.test(line);
+      const lf = /여자|여성|女/i.test(line);
+
+      if(lm && !lf){
+        maleLines.push(line);
+      } else if(lf && !lm){
+        femaleLines.push(line);
+      } else if(lm && lf){
+        /* 한 줄에 남자+여자가 같이 있는 경우 → 줄을 분할해서 각각에 배분 */
+        /* 예: "20대 남자 와 여자" → 남자 줄 / 여자 줄로 나눔 */
+        const parts = line.split(/와|그리고|,|&|\+/);
+        let addedMale = false, addedFemale = false;
+        parts.forEach(p => {
+          p = p.trim();
+          if(!p) return;
+          if(/남자|남성|男/i.test(p)){ maleLines.push(p); addedMale = true; }
+          else if(/여자|여성|女/i.test(p)){ femaleLines.push(p); addedFemale = true; }
+          else { sharedLines.push(p); }
+        });
+        /* 분할 후에도 남/여 중 하나가 안 들어갔으면 shared로 */
+        if(!addedMale && !addedFemale) sharedLines.push(line);
+      } else {
+        sharedLines.push(line);
+      }
+    });
+
+    const hasSplitMale   = maleLines.length > 0;
+    const hasSplitFemale = femaleLines.length > 0;
+
+    if(hasSplitMale && hasSplitFemale){
+      return {
+        mode:"both",
+        male:   [...maleLines,   ...sharedLines].join("\n"),
+        female: [...femaleLines, ...sharedLines].join("\n")
+      };
+    }
+    /* 분리가 안 됐어도 키워드가 둘 다 있으면 전체 텍스트를 양쪽에 사용 */
+    return {
+      mode:"both",
+      male:   text,
+      female: text
+    };
+  }
+
+  /* ── 3순위: 남자만 ── */
+  if(hasMaleKeyword){
+    return { mode:"male", male:text, female:"" };
+  }
+
+  /* ── 4순위: 여자만 ── */
+  if(hasFemaleKeyword){
+    return { mode:"female", male:"", female:text };
+  }
+
+  /* ── 5순위: 단일 캐릭터 ── */
+  return { mode:"single", male:"", female:"", single:text };
+}
+
+function parseCharacters(charText){
+  const text = (charText || "").trim();
+  if(!text) return { mode:"single", male:"", female:"", single:"" };
+
+  const sectionMatches = [...text.matchAll(/\[([^\]]+)\]\s*([\s\S]*?)(?=\n?\[[^\]]+\]|$)/g)]
+    .map(m => ({ label:m[1].trim(), desc:m[2].trim() }))
+    .filter(item => item.label && item.desc);
+  if(sectionMatches.length){
+    return { mode:"sections", sections:sectionMatches };
+  }
+
+  const lines = splitCharacterInputLines(text);
+  if(lines.length > 1){
+    return {
+      mode:"sections",
+      sections:lines.map(line => ({
+        label:inferCharacterLabel(line),
+        desc:describeCharacterLine(line).replace(/^\[[^\]]+\]\s*/,"")
+      }))
+    };
+  }
+
+  const hasMaleKeyword = /남자|남성|할아버지|아버지|소년|man|male|grandfather|old man/i.test(text);
+  const hasFemaleKeyword = /여자|여성|할머니|어머니|소녀|woman|female|grandmother|old woman/i.test(text);
+  if(hasMaleKeyword && hasFemaleKeyword) return { mode:"both", male:text, female:text };
+  if(hasMaleKeyword) return { mode:"male", male:text, female:"" };
+  if(hasFemaleKeyword) return { mode:"female", male:"", female:text };
+  return { mode:"single", male:"", female:"", single:text };
+}
+
+function splitCharacterInputLines(text){
+  const source = String(text || "").replace(/\r/g,"");
+  const rawLines = source
+    .split("\n")
+    .map(line => line.replace(/^\s*[-*•]\s*/,"").replace(/^\s*\d+[.)]\s*/,"").trim())
+    .filter(Boolean)
+    .filter(line => !/^(러닝타임|길이|시간|화면비율|비율|사이즈|스타일|비주얼스타일|영상스타일)\s*[:：]?/i.test(line))
+    .filter(line => !(line.includes("스타일") && !/(남자|남성|여자|여성|아이|아기|노부부|할아버지|할머니|고양이|강아지|로봇|카메라|자동차)/.test(line)));
+
+  const results = [];
+  rawLines.forEach(line => {
+    if(/\[[^\]]+\]/.test(line)){
+      results.push(line);
+      return;
+    }
+    line
+      .split(/\s*(?:,|，|\/| 그리고 | 및 | 함께 )\s*/g)
+      .map(v => v.trim())
+      .filter(Boolean)
+      .forEach(part => extractCharacterCandidates(part).forEach(v => results.push(v)));
+  });
+
+  return [...new Set(results.map(v => v.trim()).filter(Boolean))];
+}
+
+function extractCharacterCandidates(part){
+  const text = String(part || "").trim();
+  if(!text) return [];
+  const found = [];
+  const add = v => { if(v && !found.includes(v.trim())) found.push(v.trim()); };
+
+  const couple = text.match(/(\d{1,3})\s*대\s*(노부부|부부|어르신\s*부부)/);
+  if(couple){
+    add(`${couple[1]}대 할아버지`);
+    add(`${couple[1]}대 할머니`);
+  }
+
+  const patterns = [
+    /(\d{1,2})\s*살\s*(남자\s*아이|남아|소년)/g,
+    /(\d{1,2})\s*살\s*(여자\s*아이|여아|소녀)/g,
+    /(\d{1,3})\s*대\s*(여성|여자)/g,
+    /(\d{1,3})\s*대\s*(남성|남자)/g,
+    /(\d{1,3})\s*대\s*(할아버지|할머니|어르신|노인)/g,
+    /(남자\s*아기|여자\s*아기|남자아기|여자아기|남아|여아)/g,
+    /(고양이|강아지|개|말|토끼|새|로봇|카메라|자동차|가방)/g
+  ];
+
+  patterns.forEach(re => {
+    let match;
+    while((match = re.exec(text))){
+      add(match[0].replace(/\s+/g," ").trim());
+    }
+  });
+
+  if(found.length) return found;
+
+  const looksLikeStory = /(가족|놀러|가서|보내는|모습|시간|행복|이야기|방문|여행|발견|만나|된다|한다|에서|으로)/.test(text);
+  if(looksLikeStory) return [];
+  return [text];
+}
+
+function getAgeGroupFromText(text){
+  const value = String(text || "");
+  const ageMatch = value.match(/(\d{1,3})\s*대/);
+  if(ageMatch) return `${ageMatch[1]}대`;
+  const yearMatch = value.match(/(\d{1,2})\s*살/);
+  if(yearMatch) return `${yearMatch[1]}살`;
+  if(/신생아|영아|아기|베이비|baby|infant/i.test(value)) return "아기";
+  if(/유아|어린이|아이|child|kid|toddler/i.test(value)) return "어린이";
+  if(/청소년|10대|teen|teenager/i.test(value)) return "10대";
+  if(/노인|노년|어르신|할아버지|할머니|elderly|senior|grandfather|grandmother|old man|old woman/i.test(value)) return "70대";
+  return "젊은";
+}
+
+function inferCharacterLabel(line){
+  const text = String(line || "").trim();
+  if(!text) return "";
+  const tag = text.match(/^\[([^\]]+)\]/);
+  if(tag) return tag[1].trim();
+  const age = getAgeGroupFromText(text);
+
+  if(/남자\s*아기|남아|아기\s*남자|baby boy|boy baby/i.test(text)) return "남자 아기";
+  if(/여자\s*아기|여아|아기\s*여자|baby girl|girl baby/i.test(text)) return "여자 아기";
+  if(/아기|신생아|영아|baby|infant/i.test(text)) return "아기";
+  if(/남자\s*아이|남아|소년|boy/i.test(text)) return `${age === "젊은" ? "어린이" : age} 남자아이`;
+  if(/여자\s*아이|여아|소녀|girl/i.test(text)) return `${age === "젊은" ? "어린이" : age} 여자아이`;
+  if(/할아버지|노인\s*남|노년\s*남|grandfather|elderly man|old man/i.test(text)) return `${age} 할아버지`;
+  if(/할머니|노인\s*여|노년\s*여|grandmother|elderly woman|old woman/i.test(text)) return `${age} 할머니`;
+  if(/노인|어르신|elderly|senior/i.test(text)) return `${age} 어르신`;
+  if(/로봇|robot|android|cyborg/i.test(text)) return "로봇";
+  if(/자동차|차량|car|vehicle/i.test(text)) return "자동차";
+  if(/카메라|camera/i.test(text)) return "카메라";
+  if(/가방|bag/i.test(text)) return "가방";
+  if(/도구|소품|물건|사물|object|prop|tool/i.test(text)) return "소품";
+  if(/고양이|cat|kitten/i.test(text)) return "고양이";
+  if(/강아지|개|dog|puppy/i.test(text)) return "강아지";
+  if(/말|horse/i.test(text)) return "말";
+  if(/토끼|rabbit/i.test(text)) return "토끼";
+  if(/새|bird/i.test(text)) return "새";
+  if(/꽃|장미|해바라기|나무|식물|flower|rose|sunflower|tree|plant/i.test(text)) return text.length > 24 ? "식물" : text;
+  if(/여자|여성|woman|female/i.test(text)) return `${age === "젊은" ? "" : age + " "}여자`.trim();
+  if(/남자|남성|man|male/i.test(text)) return `${age === "젊은" ? "" : age + " "}남자`.trim();
+  return text.length > 24 ? text.slice(0,24).trim() : text;
+}
+
+function describeCharacterLine(line){
+  const text = String(line || "").trim();
+  const label = inferCharacterLabel(text);
+  if(!text) return "";
+  if(/^\[[^\]]+\]/.test(text)){
+    const desc = text.replace(/^\[[^\]]+\]\s*/,"").trim();
+    return `[${label}] ${desc || "입력한 설정을 기준으로 한 캐릭터, 외형과 소품 일관성 유지"}`;
+  }
+
+  if(/남자\s*아기|남아|아기\s*남자|baby boy|boy baby/i.test(text)){
+    return `[${label}] 남자 아기 캐릭터, 아기다운 작은 체형과 비율, 맑은 눈, 부드러운 피부, 나이에 맞는 옷과 소품, 같은 남자 아기 캐릭터 일관성`;
+  }
+  if(/여자\s*아기|여아|아기\s*여자|baby girl|girl baby/i.test(text)){
+    return `[${label}] 여자 아기 캐릭터, 아기다운 작은 체형과 비율, 맑은 눈, 부드러운 피부, 나이에 맞는 옷과 소품, 같은 여자 아기 캐릭터 일관성`;
+  }
+  if(/아기|신생아|영아|baby|infant/i.test(text)){
+    return `[${label}] 아기 캐릭터, 작은 체형, 맑은 눈, 부드러운 피부와 표정, 나이에 맞는 의상과 소품, 같은 아기 캐릭터 일관성`;
+  }
+  if(/남자\s*아이|남아|소년|boy/i.test(text)){
+    return `[${label}] 남자아이 캐릭터, 어린 나이대가 분명한 얼굴과 체형, 활발한 표정, 입력한 의상과 소품 유지, 같은 남자아이 캐릭터 일관성`;
+  }
+  if(/여자\s*아이|여아|소녀|girl/i.test(text)){
+    return `[${label}] 여자아이 캐릭터, 어린 나이대가 분명한 얼굴과 체형, 자연스러운 표정, 입력한 의상과 소품 유지, 같은 여자아이 캐릭터 일관성`;
+  }
+  if(/할아버지|노인\s*남|노년\s*남|grandfather|elderly man|old man/i.test(text)){
+    const age = getAgeGroupFromText(text);
+    return `[${label}] ${age} 남성 노년 캐릭터, 깊은 주름과 따뜻한 눈빛, 흰머리 또는 희끗한 머리, 입력한 의상과 역할 유지, 지팡이/모자/안경 같은 식별 가능한 소품, 같은 할아버지 캐릭터 일관성`;
+  }
+  if(/할머니|노인\s*여|노년\s*여|grandmother|elderly woman|old woman/i.test(text)){
+    const age = getAgeGroupFromText(text);
+    return `[${label}] ${age} 여성 노년 캐릭터, 부드러운 주름과 온화한 표정, 흰머리 또는 단정한 머리, 입력한 의상과 역할 유지, 가방/안경/스카프 같은 식별 가능한 소품, 같은 할머니 캐릭터 일관성`;
+  }
+  if(/로봇|robot|android|cyborg/i.test(text)){
+    return `[${label}] 로봇 캐릭터, 금속 또는 합성 소재 바디, 눈 또는 센서 디자인, 관절 구조, 컬러 팔레트와 식별 가능한 장치, 같은 로봇 캐릭터 일관성`;
+  }
+  if(/자동차|차량|car|vehicle/i.test(text)){
+    return `[${label}] 자동차 캐릭터 또는 핵심 오브젝트, 차체 실루엣, 색상, 라이트, 바퀴, 재질과 식별 가능한 디테일, 같은 자동차 디자인 일관성`;
+  }
+  if(/카메라|가방|도구|소품|물건|사물|object|prop|tool|camera|bag/i.test(text)){
+    return `[${label}] 핵심 소품 또는 도구, 형태와 재질, 색상, 크기, 사용 목적, 식별 가능한 디테일, 모든 컷에서 같은 오브젝트 일관성`;
+  }
+  if(/고양이|cat|kitten/i.test(text)) return `[${label}] 고양이 캐릭터, 부드러운 털, 선명한 눈, 귀와 꼬리의 특징 유지, 식별 가능한 목걸이 또는 리본, 같은 고양이 캐릭터 일관성`;
+  if(/강아지|개|dog|puppy/i.test(text)) return `[${label}] 강아지 캐릭터, 품종이 느껴지는 털과 귀, 맑은 눈, 꼬리와 발 디테일, 식별 가능한 목걸이 또는 소품, 같은 강아지 캐릭터 일관성`;
+  if(/말|horse/i.test(text)) return `[${label}] 말 캐릭터, 균형 잡힌 체형, 윤기 있는 갈기, 강한 다리, 눈빛과 털색, 안장 또는 장식 소품, 같은 말 캐릭터 일관성`;
+  if(/꽃|장미|해바라기|나무|식물|flower|rose|sunflower|tree|plant/i.test(text)) return `[${label}] 식물 캐릭터 또는 핵심 식물 오브젝트, 잎과 줄기, 꽃잎 또는 가지의 형태, 색상 팔레트, 질감과 성장 단계, 같은 식물 디자인 일관성`;
+  if(/여자|여성|woman|female/i.test(text)){
+    const age = getAgeGroupFromText(text);
+    return `[${label}] ${age} 여성 캐릭터, 해당 나이대가 분명한 얼굴과 체형, 입력한 인상과 의상 유지, 자연스러운 표정, 헤어스타일과 소품 일관성`;
+  }
+  if(/남자|남성|man|male/i.test(text)){
+    const age = getAgeGroupFromText(text);
+    return `[${label}] ${age} 남성 캐릭터, 해당 나이대가 분명한 얼굴과 체형, 입력한 인상과 의상 유지, 자연스러운 표정, 헤어스타일과 소품 일관성`;
+  }
+  return `[${label}] ${text} 캐릭터 또는 핵심 매개체, 입력한 외형과 역할을 유지, 식별 가능한 특징과 소품, 같은 디자인 일관성`;
+}
+
+function parseCharacters(charText){
+  const text = (charText || "").trim();
+  if(!text) return { mode:"single", male:"", female:"", single:"" };
+
+  const sectionMatches = [...text.matchAll(/\[([^\]]+)\]\s*([\s\S]*?)(?=\n?\[[^\]]+\]|$)/g)]
+    .map(m => ({ label:m[1].trim(), desc:m[2].trim() }))
+    .filter(item => item.label && item.desc);
+  if(sectionMatches.length){
+    return { mode:"sections", sections:sectionMatches };
+  }
+
+  const lines = splitCharacterInputLines(text);
+  if(lines.length > 1){
+    return {
+      mode:"sections",
+      sections:lines.map(line => ({
+        label:inferCharacterLabel(line),
+        desc:describeCharacterLine(line).replace(/^\[[^\]]+\]\s*/,"")
+      }))
+    };
+  }
+
+  const singleDesc = describeCharacterLine(text);
+  return {
+    mode:"sections",
+    sections:[{
+      label:inferCharacterLabel(text) || "캐릭터",
+      desc:singleDesc.replace(/^\[[^\]]+\]\s*/,"")
+    }]
+  };
+}
+
+function getAdaptiveCharacterSuffix(charDesc, preset){
+  const text = String(charDesc || "").toLowerCase();
+  const hasBaby = /아기|유아|아이|baby|toddler/.test(text);
+  const hasAnimal = /고양이|강아지|토끼|새|앵무새|햄스터|말|여우|사자|호랑이|곰|판다|펭귄|거북이|돌고래|물고기|나비|동물|cat|kitten|dog|puppy|rabbit|bird|parrot|hamster|horse|fox|lion|tiger|bear|panda|penguin|turtle|dolphin|fish|butterfly|animal/.test(text);
+  const hasPlant = /꽃|장미|해바라기|나무|선인장|식물|flower|rose|sunflower|tree|cactus|plant/.test(text);
+  const hasHanbok = /한복|hanbok|고궁|궁궐|palace/.test(text);
+  const hasObject = /로봇|자동차|사물|인형|robot|car|object|toy/.test(text);
+  const hasElderly = /할아버지|할머니|노인|어르신|elderly|senior|grandfather|grandmother|old man|old woman/.test(text);
+  const hasRobot = /로봇|robot|android|cyborg/.test(text);
+
+  if(hasRobot){
+    return `robot / android character sheet,
+front view, side view, back view, full body,
+head unit, sensor or eye design, torso, arms, legs, joints, hands, material detail,
+metal, synthetic skin, panels, cables, lights, color palette, scale reference,
+same robot identity consistency,
+clean white background,
+professional sci-fi concept design sheet`;
+  }
+
+  if(hasElderly){
+    return `elderly human character sheet,
+front view, side view, back view, full body,
+facial expression sheet,
+age-specific facial wrinkles, eye shape, hair color, posture, body proportions,
+costume detail, personal props such as cane, glasses, hat, bag, or accessories,
+same elderly character consistency,
+clean white background,
+professional character design sheet`;
+  }
+
+  if(hasHanbok){
+    return `professional character sheet,
+front view, side view, back view, full body,
+facial expression sheet,
+traditional Korean hanbok costume detail,
+jeogori, chima or baji silhouette, norigae or traditional accessory detail,
+fabric texture, sleeve shape, ribbon and color palette,
+same character consistency,
+clean white background,
+preserve Korean palace / historical mood when referenced`;
+  }
+
+  if(hasPlant && !hasBaby && !hasAnimal){
+    return `plant character sheet,
+front view, side view, back view,
+flower, leaf, stem, root or pot detail depending on the plant,
+color palette, silhouette, texture, growth stage, expression or anthropomorphic detail,
+same plant character consistency,
+clean white background,
+professional botanical character concept design`;
+  }
+
+  if(hasAnimal && !hasBaby){
+    return `animal character sheet,
+front view, side view, back view, full body,
+facial expression sheet adapted to the animal species,
+fur pattern detail, eyes, ears, tail, paws, collar or accessory detail,
+same animal character consistency,
+clean white background,
+professional creature character design`;
+  }
+
+  if(hasBaby){
+    return `baby / toddler character sheet,
+front view, side view, back view, full body,
+facial expression sheet, tiny hand and foot detail,
+soft baby clothing detail, age-appropriate proportions,
+same baby character consistency,
+clean white background,
+warm professional character design`;
+  }
+
+  if(hasObject){
+    return `non-human object character sheet,
+front view, side view, back view,
+material, silhouette, color palette, scale, props, and texture details,
+same object identity consistency,
+clean white background,
+professional concept design sheet`;
+  }
+
+  return preset.characterSuffix;
+}
+
+function buildCharPrompt(charDesc, preset, label){
+  return `CHARACTER SHEET PROMPT — ${label}
+[VISUAL STYLE: ${preset.label}]
+
+${preset.common},
+
+${charDesc},
+
+${getAdaptiveCharacterSuffix(charDesc, preset)}`;
+}
+
+function setCharTextarea(id, value){
+  const el = $(id);
+  if(el) el.value = value;
+}
+
+function renderCharacterSheets(d, preset){
+  const wrap = $("charSheetWrap");
+  if(!wrap) return;
+
+  const charInput = (d.character || "").trim();
+  const parsed    = parseCharacters(charInput);
+  const referenceNote = d.referenceImages ? `\n\n${d.referenceImages}` : "";
+
+  // 전체 시트용 텍스트 (입력이 없으면 안내 문구)
+  const totalDesc  = `${charInput || "등장인물 정보를 입력 탭에서 입력해주세요."}${referenceNote}`;
+  const totalPrompt = buildCharPrompt(totalDesc, preset, "전체 등장인물");
+
+  // ── HTML 조립 ──
+  let html = "";
+
+  // 항상: 전체 시트
+  html += `<div class="char-card" style="margin-bottom:16px">
+  <div class="char-card-head single">
+    <span>🎭 전체 캐릭터 시트</span>
+    <button class="action ghost" style="padding:4px 12px;font-size:12px" onclick="copyCharSheet('charTotalOut')">복사</button>
+  </div>
+  <textarea id="charTotalOut" style="min-height:200px"></textarea>
+</div>`;
+
+  // 남녀 모두
+  if(parsed.mode === "both"){
+    html += `<div class="char-grid" style="margin-bottom:12px">
+  <div class="char-card">
+    <div class="char-card-head male">
+      <span>👨 남자 주인공 시트</span>
+      <button class="action ghost" style="padding:4px 12px;font-size:12px" onclick="copyCharSheet('charMaleOut')">복사</button>
+    </div>
+    <textarea id="charMaleOut" style="min-height:260px"></textarea>
+  </div>
+  <div class="char-card">
+    <div class="char-card-head female">
+      <span>👩 여자 주인공 시트</span>
+      <button class="action ghost" style="padding:4px 12px;font-size:12px" onclick="copyCharSheet('charFemaleOut')">복사</button>
+    </div>
+    <textarea id="charFemaleOut" style="min-height:260px"></textarea>
+  </div>
+</div>
+<div class="btns"><button class="action ghost" onclick="copyBothCharSheets()">👨+👩 남+여 합본 복사</button></div>`;
+  }
+
+  if(parsed.mode === "sections"){
+    html += `<div class="char-grid" style="margin-bottom:12px">
+${parsed.sections.map((section,index)=>`
+  <div class="char-card">
+    <div class="char-card-head single">
+      <span>${escapeHtml(section.label)} 캐릭터 시트</span>
+      <button class="action ghost" style="padding:4px 12px;font-size:12px" onclick="copyCharSheet('charSectionOut_${index}')">복사</button>
+    </div>
+    <textarea id="charSectionOut_${index}" style="min-height:260px"></textarea>
+  </div>`).join("")}
+</div>
+<div class="btns"><button class="action ghost" onclick="copyAllCharacterSections()">전체 캐릭터 합본 복사</button></div>`;
+  }
+
+  // 남자만
+  if(parsed.mode === "male"){
+    html += `<div class="char-card" style="margin-bottom:12px">
+  <div class="char-card-head male">
+    <span>👨 남자 주인공 시트</span>
+    <button class="action ghost" style="padding:4px 12px;font-size:12px" onclick="copyCharSheet('charMaleOut')">복사</button>
+  </div>
+  <textarea id="charMaleOut" style="min-height:260px"></textarea>
+</div>`;
+  }
+
+  // 여자만
+  if(parsed.mode === "female"){
+    html += `<div class="char-card" style="margin-bottom:12px">
+  <div class="char-card-head female">
+    <span>👩 여자 주인공 시트</span>
+    <button class="action ghost" style="padding:4px 12px;font-size:12px" onclick="copyCharSheet('charFemaleOut')">복사</button>
+  </div>
+  <textarea id="charFemaleOut" style="min-height:260px"></textarea>
+</div>`;
+  }
+
+  // innerHTML 세팅
+  wrap.innerHTML = html;
+
+  // ── 값 세팅 (innerHTML 완료 직후) ──
+  setCharTextarea("charTotalOut", totalPrompt);
+
+  if(parsed.mode === "both"){
+    setCharTextarea("charMaleOut",   buildCharPrompt(`${parsed.male}${referenceNote}`,   preset, "남자 주인공"));
+    setCharTextarea("charFemaleOut", buildCharPrompt(`${parsed.female}${referenceNote}`, preset, "여자 주인공"));
+  } else if(parsed.mode === "sections"){
+    parsed.sections.forEach((section,index)=>{
+      setCharTextarea(`charSectionOut_${index}`, buildCharPrompt(`${section.desc}${referenceNote}`, preset, section.label));
+    });
+  } else if(parsed.mode === "male"){
+    setCharTextarea("charMaleOut",   buildCharPrompt(`${parsed.male}${referenceNote}`,   preset, "남자 주인공"));
+  } else if(parsed.mode === "female"){
+    setCharTextarea("charFemaleOut", buildCharPrompt(`${parsed.female}${referenceNote}`, preset, "여자 주인공"));
+  }
+}
+
+function getLockedCharacterReference(d, preset){
+  const charInput = (d.character || "").trim();
+  const parsed = parseCharacters(charInput);
+  const fallback = "Primary character, consistent face, hairstyle, body proportions, costume, props, and color palette.";
+  const blocks = [];
+  const referenceImages = d.referenceImages ? `\n\n${d.referenceImages}` : "";
+
+  if(parsed.mode === "both"){
+    blocks.push(buildCharPrompt(parsed.male || fallback, preset, "male lead"));
+    blocks.push(buildCharPrompt(parsed.female || fallback, preset, "female lead"));
+  } else if(parsed.mode === "sections"){
+    parsed.sections.forEach(section => {
+      blocks.push(buildCharPrompt(section.desc || fallback, preset, section.label || "character"));
+    });
+  } else if(parsed.mode === "male"){
+    blocks.push(buildCharPrompt(parsed.male || fallback, preset, "male lead"));
+  } else if(parsed.mode === "female"){
+    blocks.push(buildCharPrompt(parsed.female || fallback, preset, "female lead"));
+  } else {
+    blocks.push(buildCharPrompt(parsed.single || charInput || fallback, preset, "main character"));
+  }
+
+  return `LOCKED CHARACTER REFERENCE - USE THIS EXACT PROFESSIONAL CHARACTER SHEET IN EVERY OUTPUT
+${blocks.join("\n\n")}
+${referenceImages}
+
+CHARACTER CONTINUITY RULES:
+same character identity in storyboard, image prompts, and video prompts,
+preserve the exact face, hairstyle, age, body proportions, outfit, accessories, props, and color palette,
+do not redesign the character between cuts,
+do not change gender, age, outfit, hairstyle, or key accessories,
+no random replacement protagonist,
+all cuts must look like the same character sheet brought into different scenes`;
+}
+
+function renderCharacterContinuityCard(d, preset){
+  const esc = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  return `
+<div class="storyCard">
+  <h2>CHARACTER CONTINUITY</h2>
+  <p style="white-space:pre-wrap;color:var(--muted);line-height:1.55;margin:0">${esc(getLockedCharacterReference(d, preset))}</p>
+</div>`;
+}
+
+function copyCharSheet(id){
+  const el = $(id);
+  if(!el) return;
+  writeClipboard(el.value || "", "캐릭터 시트 복사 완료");
+}
+
+function copyBothCharSheets(){
+  const m = $("charMaleOut");
+  const f = $("charFemaleOut");
+  const parts = [];
+  if(m && m.value) parts.push(m.value);
+  if(f && f.value) parts.push(f.value);
+  const text = parts.join("\n\n══════════════════════════\n\n");
+  writeClipboard(text, "남+여 합본 복사 완료");
+}
+
+function copyAllCharacterSections(){
+  const parts = [];
+  document.querySelectorAll("[id^='charSectionOut_']").forEach(el => {
+    if(el.value) parts.push(el.value);
+  });
+  writeClipboard(parts.join("\n\n══════════════════════════\n\n"), "전체 캐릭터 합본 복사 완료");
+}
+
+function escapeHtml(str){
+  return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function generateAll(){
+  try{
+    const d = data();
+    const plan = makePlan(d);
+    const ratioPrompt = getStrictRatioPrompt(d);
+
+    /* 스타일 프리셋 결정 */
+    const styleKey = getCurrentStyleKey();
+    const preset = getStylePreset(styleKey);
+    COMMON = preset.common; // 전역 업데이트
+    const characterReference = getLockedCharacterReference(d, preset);
+
+    /* 스타일 배지 표시 */
+    const badgeEl = $("styleBadge");
+    if(badgeEl){
+      badgeEl.textContent = "🎨 " + preset.label;
+      badgeEl.style.display = "inline-block";
+    }
+
+    /* 전체 결과 */
+    if($("summaryOut")){
+      $("summaryOut").textContent =
+`1. TITLE
+
+〈${d.topic}〉
+
+2. GENRE
+
+${d.genre}
+
+SCREEN RATIO
+
+${d.aspectRatio}
+
+VISUAL STYLE
+
+${preset.label}
+
+3. LOGLINE
+
+${d.logline}
+
+4. SYNOPSIS
+
+${d.synopsis}`;
+    }
+
+    /* 캐릭터 시트 — 스타일별 · 남녀 분리 */
+    renderCharacterSheets(d, preset);
+
+    /* 스토리보드 */
+    if($("storyboardOut")){
+      $("storyboardOut").innerHTML = renderRichStoryboard(d, preset);
+    }
+
+    const imageItems = [];
+    const videoItems = [];
+
+    plan.forEach(c=>{
+      const imagePrompt = buildProductionPrompt("image", c, d, preset);
+      const videoPrompt = buildProductionPrompt("video", c, d, preset);
+
+      imageItems.push({
+        num:c.no,
+        title:c.title||c.scene,
+        phase:c.phase,
+        desc:c.action||c.scene,
+        prompt:imagePrompt,
+        koPrompt:buildKoreanPromptCheck("image", c, d, preset)
+      });
+
+      videoItems.push({
+        num:c.no,
+        title:c.title||c.scene,
+        phase:c.phase,
+        desc:c.action||c.scene,
+        prompt:videoPrompt,
+        koPrompt:buildKoreanPromptCheck("video", c, d, preset)
+      });
+    });
+
+    pgSetPrompts("image", imageItems);
+    pgSetPrompts("video", videoItems);
+    updateSunoSourcePreview();
+  }catch(err){
+    console.error(err);
+    alert("생성 중 오류가 발생했습니다: " + err.message);
+  }
+}
+function renderCuts(containerId,plan,getPrompt){const box=$(containerId);box.innerHTML="";plan.forEach(c=>{const id=`${containerId}_${c.no}`;const div=document.createElement("div");div.className="cutCard";div.innerHTML=`<h3>CUT ${c.no} — ${c.title}</h3><textarea id="${id}">${getPrompt(c)}</textarea><div class="btns"><button class="action ghost" onclick="copyText('${id}')">이 컷 복사</button></div>`;box.appendChild(div)})}
+function copyText(id){const el=$(id);const text=("value"in el)?el.value:el.textContent;writeClipboard(text,"복사 완료")}
+function toast(msg){$("toast").textContent=msg;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",1400)}
+function saveInputs(){localStorage.setItem("simpleWorkflow",JSON.stringify({sourceCharacter:$("sourceCharacter") ? $("sourceCharacter").value : "",sourceContent:$("sourceContent") ? $("sourceContent").value : "",autoInput:$("autoInput") ? $("autoInput").value : "",genre:$("genre").value,topic:$("topic").value,loglineOnly:$("loglineOnly") ? $("loglineOnly").value : "",synopsisOnly:$("synopsisOnly") ? $("synopsisOnly").value : "",background:$("background").value,mood:$("mood").value,character:$("character").value,runtime:$("runtime").value,cutCount:$("cutCount").value,style:$("style").value,aspectRatio:($("aspectRatio") ? $("aspectRatio").value : "9:16 vertical")}));toast("저장 완료")}
+function loadInputs(){const raw=localStorage.getItem("simpleWorkflow");if(!raw)return;const d=JSON.parse(raw);Object.keys(d).forEach(k=>{if($(k))$(k).value=d[k]}); if($("aspectRatio") && (!$("aspectRatio").value || $("aspectRatio").value==="Ratio")) $("aspectRatio").value="9:16 vertical"}
+function clearInputs(){localStorage.removeItem("simpleWorkflow");["sourceCharacter","sourceContent","autoInput","genre","topic","loglineOnly","synopsisOnly","background","mood","character","runtime","cutCount","style"].forEach(id=>{if($(id))$(id).value=""}); if($("aspectRatio")) $("aspectRatio").value="9:16 vertical"; generateAll()}
+
+function parseRuntimeSeconds(value){
+  const text = String(value || "").trim();
+  if(!text) return 0;
+
+  const minMatch = text.match(/(\d+(?:\.\d+)?)\s*(분|min|minute|minutes)/i);
+  const secMatch = text.match(/(\d+(?:\.\d+)?)\s*(초|sec|second|seconds|s)/i);
+
+  let seconds = 0;
+  if(minMatch) seconds += Number(minMatch[1]) * 60;
+  if(secMatch) seconds += Number(secMatch[1]);
+
+  if(!seconds){
+    const onlyNum = text.match(/\d+(?:\.\d+)?/);
+    if(onlyNum) seconds = Number(onlyNum[0]);
+  }
+  return Math.round(seconds);
+}
+
+function autoCalculateCuts(){
+  let seconds = parseRuntimeSeconds($("runtime").value);
+  if(!seconds) return;
+
+  seconds = Math.min(seconds, 300);
+
+  let cuts = 0;
+  if(seconds <= 15) cuts = 4;
+  else if(seconds <= 30) cuts = 6;
+  else if(seconds <= 45) cuts = 8;
+  else if(seconds <= 60) cuts = 10;
+  else if(seconds <= 90) cuts = 12;
+  else if(seconds <= 120) cuts = 16;
+  else if(seconds <= 180) cuts = 22;
+  else if(seconds <= 240) cuts = 26;
+  else cuts = 30;
+
+  $("cutCount").value = cuts;
+  generateAll();
+}
+
+function getPromptQualityScore(){
+  const d = data();
+  const image = $("imageOut").value || "";
+  const video = $("videoOut").value || "";
+  const styleKey = getCurrentStyleKey();
+  const preset = getStylePreset(styleKey);
+  // 현재 프리셋 공통 키워드 첫 단어로 스타일 적용 여부 확인
+  const styleKeyword = preset.common.split(",")[0].trim();
+  const autoText = $("autoInput") ? $("autoInput").value.trim() : "";
+  const characterText = $("character") ? $("character").value.trim() : "";
+  const detectedSubjects = getDetectedSubjects(autoText);
+  const explicitHuman = /20대|30대|여성|여자|남성|남자|사람|인물|의사|학생|선생님|간호사|경찰|귀신/.test(autoText);
+  const explicitAnimalOrPlant = detectedSubjects.length > 0 || /동물|식물|고양이|강아지|토끼|말|새|꽃|나무/.test(autoText);
+  const characterMismatch =
+    explicitHuman &&
+    !explicitAnimalOrPlant &&
+    /\[(말|고양이|강아지|토끼|새|햄스터|여우|사자|호랑이|곰|판다|펭귄|거북이|돌고래|물고기|나비|꽃|장미|해바라기|나무|선인장|동물|식물)\]/.test(characterText);
+
+  const missingCharacters = missingCharacterLabelsInOutput();
+  const expectedSize = getOutputSizeLabel(d);
+  const expectedRatio = String(d.aspectRatio || "9:16 vertical").toLowerCase().includes("16:9") ? "16:9" : "9:16";
+  const hasRatioInfo =
+    image.includes(expectedSize) &&
+    video.includes(expectedSize) &&
+    image.toLowerCase().includes(expectedRatio) &&
+    video.toLowerCase().includes(expectedRatio);
+  const hasCutStructure =
+    d.cutCount > 0 &&
+    typeof pgStore !== "undefined" &&
+    pgStore.image &&
+    pgStore.video &&
+    pgStore.image.length === d.cutCount &&
+    pgStore.video.length === d.cutCount;
+  const checks = [
+    ["장르 입력", !!$("genre").value.trim()],
+    ["주제 입력", !!$("topic").value.trim()],
+    ["배경/장소 입력", !!$("background").value.trim()],
+    ["분위기 입력", !!$("mood").value.trim()],
+    ["등장인물 입력", !!$("character").value.trim()],
+    ["러닝타임 입력", !!$("runtime").value.trim()],
+    ["컷수 입력", !!$("cutCount").value.trim()],
+    ["스타일 입력", !!$("style").value.trim()],
+    ["화면 비율 선택", !!($("aspectRatio") && $("aspectRatio").value)],
+    [`비주얼 스타일 적용 (${preset.label})`, image.includes(styleKeyword) && video.includes(styleKeyword)],
+    ["이미지 프롬프트 생성", image.includes("IMAGE PROMPTS")],
+    ["영상 프롬프트 생성", video.includes("VIDEO PROMPTS")],
+    ["비율 정보 포함", hasRatioInfo],
+    ["캐릭터 일관성 포함", image.includes("same character") || video.includes("same character")],
+    ["컷별 구성", hasCutStructure],
+    ["입력값과 등장인물 불일치 없음", !characterMismatch],
+    [missingCharacters.length ? `입력 등장인물 누락: ${missingCharacters.join(", ")}` : "입력 등장인물 모두 반영", missingCharacters.length === 0]
+  ];
+
+  const passed = checks.filter(c=>c[1]).length;
+  const score = Math.round((passed / checks.length) * 100);
+  return {score, checks, styleKey, preset};
+}
+
+function checkPromptQuality(){
+  generateAll();
+  const result = getPromptQualityScore();
+  const grade = result.score >= 90 ? "좋음" : result.score >= 70 ? "보통" : "수정 필요";
+  const checklist = result.checks.map(([name, ok]) => `${ok ? "✅" : "❌"} ${name}`).join("\n");
+
+  $("qualityOut").textContent =
+`PROMPT QUALITY CHECK
+
+점수: ${result.score}/100
+판정: ${grade}
+적용 비주얼 스타일: ${result.preset.label}
+
+체크리스트
+${checklist}
+
+해석
+- 90점 이상: 바로 사용 가능
+- 70~89점: 사용 가능하지만 일부 보완 추천
+- 69점 이하: 입력값 또는 프롬프트 구조 보완 필요
+
+스타일 키워드 예시
+실사→"시네마틱" | 애니→"애니메이션/anime" | 픽사→"픽사/pixar"
+3D→"3D/언리얼" | 웹툰→"웹툰/manhwa" | 수채화→"수채화/watercolor"
+사이버펑크→"사이버펑크/SF" | 판타지→"판타지/fantasy"
+레트로→"레트로/빈티지" | 공포→"공포/horror"
+
+주의
+AI 프롬프트에는 정답이 없기 때문에 100% 완벽 여부를 자동으로 보장할 수는 없습니다.
+대신 누락 요소, 컷 구성, 스타일, 비율, 캐릭터 일관성 같은 실무 기준을 점검합니다.`;
+}
+
+function setupRuntimeAutoCut(){
+  const runtime = $("runtime");
+  if(!runtime) return;
+  runtime.addEventListener("input", () => {
+    clearTimeout(window.__runtimeTimer);
+    window.__runtimeTimer = setTimeout(autoCalculateCuts, 350);
+  });
+  runtime.addEventListener("change", autoCalculateCuts);
+}
+
+
+
+/* ════════════════════════════════════════
+   SUNO — 시놉시스/스토리보드 기반 자동 음악 생성
+════════════════════════════════════════ */
+let sunoGeneratedData = { style:"", title:"", lyrics:"" };
+let sunoRegenerateCount = 0;
+
+function getSunoSourceData(){
+  const d = data();
+  const plan = makePlan(d);
+  return {
+    d,
+    plan,
+    storyboard: plan.map(c => `CUT ${c.no}. ${c.title} / ${c.action} / camera: ${c.camera}`).join("\n")
+  };
+}
+
+function updateSunoSourcePreview(){
+  const el = $("sunoSourcePreview");
+  if(!el) return;
+  const { d, storyboard } = getSunoSourceData();
+  el.textContent =
+`TITLE
+${d.topic}
+
+SYNOPSIS
+${d.synopsis}
+
+STORYBOARD
+${storyboard}`;
+}
+
+function getSunoLangLabel(value){
+  return {
+    korean:"한국어",
+    english:"영어",
+    japanese:"일본어",
+    ko_jp:"한국어+일본어 혼합",
+    bilingual:"한영 혼합"
+  }[value] || "한국어";
+}
+
+function normalizeSunoStyle(style, bpm, length, mood){
+  const lower = String(style || "").toLowerCase();
+  const styleMap = [
+    { keys:["발라드","ballad"], value:"emotional cinematic ballad, warm piano, soft strings, intimate vocal" },
+    { keys:["팝","pop"], value:"cinematic pop, bright synth, clean drums, catchy hook" },
+    { keys:["힙합","hiphop","hip-hop","랩"], value:"melodic hip hop, deep 808, crisp drums, emotional topline" },
+    { keys:["ost","오에스티","사운드트랙"], value:"cinematic OST, orchestral piano, swelling strings, film score mood" },
+    { keys:["록","rock"], value:"emotional rock, live drums, electric guitar, anthemic chorus" },
+    { keys:["lofi","로파이"], value:"lo-fi pop, mellow beat, warm keys, soft tape texture" },
+    { keys:["edm","댄스"], value:"cinematic EDM pop, pulsing synth, energetic beat, wide chorus" },
+    { keys:["재즈","jazz"], value:"cinematic jazz ballad, brushed drums, upright bass, warm piano" }
+  ];
+  const found = styleMap.find(item => item.keys.some(key => lower.includes(key) || String(style).includes(key)));
+  const base = found ? found.value : `${style || "cinematic emotional pop"}, cinematic arrangement`;
+  return `${base}, BPM ${bpm || "80"}, ${length || "60초"}, ${mood || "emotional"}, polished SUNO style`;
+}
+
+function getSongSectionsByLength(length){
+  if(String(length).includes("30")) return ["Intro","Verse","Chorus","Outro"];
+  if(String(length).includes("90") || String(length).includes("2분")) return ["Intro","Verse 1","Pre-Chorus","Chorus","Verse 2","Bridge","Final Chorus","Outro"];
+  if(String(length).includes("3분")) return ["Intro","Verse 1","Pre-Chorus","Chorus","Verse 2","Pre-Chorus 2","Chorus","Bridge","Final Chorus","Outro"];
+  return ["Intro","Verse 1","Pre-Chorus","Chorus","Verse 2","Bridge","Outro"];
+}
+
+function getStoryKeywords(d, plan){
+  const subject = (d.character || d.topic || "우리").replace(/\[[^\]]+\]/g," ").split(/[,\n]/).map(v=>v.trim()).filter(Boolean)[0] || d.topic || "우리";
+  const source = `${d.topic}\n${d.logline}\n${d.synopsis}\n${plan.map(c=>c.scene).join("\n")}`;
+  const isPalace = /고궁|궁궐|한복|palace|hanbok/.test(source);
+  const isBabyAnimal = /아기|고양이|강아지|동물|baby|cat|dog|puppy|kitten/.test(source.toLowerCase());
+  const isRomance = /사랑|연애|로맨스|설렘|그리움/.test(source);
+  const isRacing = /레이싱|서킷|속도|엔진|race|racing/.test(source.toLowerCase());
+  const moodWords = isPalace
+    ? { place:"오래된 담장", light:"고운 햇살", symbol:"옷깃의 바람", feeling:"시간을 건너온 설렘" }
+    : isBabyAnimal
+      ? { place:"작은 방", light:"노을빛", symbol:"작은 발자국", feeling:"처음 만난 용기" }
+      : isRomance
+        ? { place:"익숙한 거리", light:"창가의 빛", symbol:"늦은 고백", feeling:"말하지 못한 마음" }
+        : isRacing
+          ? { place:"붉은 트랙", light:"번지는 헤드라이트", symbol:"마지막 바퀴", feeling:"끝까지 타오르는 심장" }
+          : { place:"낯선 길", light:"멀리 켜진 빛", symbol:"작은 약속", feeling:"다시 시작하는 마음" };
+  return {
+    subject,
+    ...moodWords,
+    message: d.logline || d.synopsis || d.topic
+  };
+}
+
+function makeSectionLines(section, lang, k){
+  const s = section.toLowerCase();
+  const isIntro = s.includes("intro");
+  const isVerse2 = s.includes("verse 2");
+  const isPre = s.includes("pre");
+  const isChorus = s.includes("chorus") && !isPre;
+  const isBridge = s.includes("bridge");
+  const isOutro = s.includes("outro");
+
+  if(lang === "english"){
+    if(isChorus) return `We rise where the morning glows\nHolding dreams nobody knows\nEvery heartbeat finds a line\nThis little world becomes a sign`;
+    if(isBridge) return `If the dark comes close again\nI will turn it into rain`;
+    if(isOutro) return `Softly now, we find our way\nCarrying a brand new day`;
+    if(isPre) return `One more breath, I won't let go\nThe quiet spark begins to grow`;
+    if(isVerse2) return `Past the door of yesterday\nI learn the words I couldn't say`;
+    if(isIntro) return `A small wind moves through the silence\nLike a secret waking slowly`;
+    return `In the hush before the daylight\nI hear a hidden dream call my name`;
+  }
+
+  if(lang === "japanese"){
+    if(isChorus) return `光の中へ 手を伸ばそう\n小さな夢を 抱きしめよう\n迷いながらも 消えないよ\n胸の奥で 歌になる`;
+    if(isBridge) return `影が揺れても 怖くない\n涙さえも 星になる`;
+    if(isOutro) return `そっと笑って 歩き出す\n新しい朝へ 続いてく`;
+    if(isPre) return `もう一度 息をして\n小さな光 信じたい`;
+    if(isVerse2) return `昨日の扉を 越えたなら\n言えなかった声が 咲いていく`;
+    if(isIntro) return `静かな風が 夜明けを渡る\n眠っていた願いが 目を覚ます`;
+    return `静かな風が 頬をなでて\n忘れた願いが 目を覚ます`;
+  }
+
+  if(lang === "ko_jp"){
+    if(isChorus) return `빛이 번져와 마음 끝에\n君の声が 星になる\n작은 꿈을 안고서\nこの道を 歩いてく`;
+    if(isBridge) return `흔들리는 밤에도\n涙さえ 길이 돼`;
+    if(isOutro) return `노을 아래 웃으며\nまた明日へ 걸어가`;
+    if(isPre) return `한 번 더 숨을 쉬면\n小さな光 믿게 돼`;
+    if(isVerse2) return `어제의 문을 지나\n言えなかった 마음이 피어나`;
+    if(isIntro) return `${k.place} 위로 바람이 지나\n眠っていた 꿈이 깨어나`;
+    return `${k.light} 아래 숨을 고르면\n忘れた願いが 깨어나`;
+  }
+
+  if(lang === "bilingual"){
+    if(isChorus) return `빛을 향해 run with me\n작은 꿈이 melody\n넘어져도 stay with me\nOur hearts are shining free`;
+    if(isBridge) return `어둠 속에 길을 잃어도\nYour voice brings me home`;
+    if(isOutro) return `마지막 빛이 번질 때\nWe find a brand new day`;
+    if(isPre) return `한 번 더 breathe again\n작은 빛이 rising in me`;
+    if(isVerse2) return `어제의 문을 지나\nI say the words I kept inside`;
+    if(isIntro) return `${k.place} 위로 번진 숨\nA quiet dream begins to move`;
+    return `${k.place} 위로 번진 숨\nI turn it into a song`;
+  }
+
+  if(isChorus) return `빛을 따라 걸어가\n작은 꿈을 안고서\n흔들려도 괜찮아\n내 마음은 노래가 돼`;
+  if(isBridge) return `잠시 길을 잃어도\n${k.symbol}이 나를 불러`;
+  if(isOutro) return `노을빛 아래 웃으며\n새로운 내일로 걸어가`;
+  if(isPre) return `한 번 더 숨을 고르면\n작은 빛이 번져와`;
+  if(isVerse2) return `어제의 문을 지나서\n말 못한 마음이 피어나`;
+  if(isIntro) return `${k.place} 위로 바람이 불고\n잠든 꿈이 천천히 깨어나`;
+  return `${k.place} 위로 바람이 불고\n${k.feeling}이 조용히 피어나`;
+}
+
+function getSunoVariationLine(section, lang, variant){
+  if(!variant) return "";
+  const pool = {
+    english:[
+      "A new light opens the same old sky",
+      "I choose the road with a softer heart",
+      "Another breath becomes a melody"
+    ],
+    japanese:[
+      "同じ空に 新しい光",
+      "小さな声が 道になる",
+      "もう一度 心が歌う"
+    ],
+    ko_jp:[
+      "같은 하늘에 新しい光",
+      "작은 마음이 道になる",
+      "다시 한번 心が歌う"
+    ],
+    bilingual:[
+      "같은 길 위에 a brand new light",
+      "작은 마음이 becomes a song",
+      "다시 한번 I find my way"
+    ],
+    korean:[
+      "같은 하늘 아래 새로운 빛이 번져",
+      "작은 마음이 다시 길이 되어",
+      "한 번 더 숨 쉬며 노래가 되어"
+    ]
+  };
+  const list = pool[lang] || pool.korean;
+  const index = (variant + section.length) % list.length;
+  return list[index];
+}
+
+function makeVariantSectionLines(section, lang, k, variant){
+  const s = section.toLowerCase();
+  const isIntro = s.includes("intro");
+  const isVerse2 = s.includes("verse 2");
+  const isPre = s.includes("pre");
+  const isChorus = s.includes("chorus") && !isPre;
+  const isBridge = s.includes("bridge");
+  const isOutro = s.includes("outro");
+  const v = variant % 3;
+  const pick = list => list[Math.abs(variant - 1) % list.length];
+
+  if(lang === "english"){
+    if(isChorus) return v === 1
+      ? `We turn the page and breathe again\nEvery scar becomes a flame\nThrough the night we find the line\nYour hand in mine, we shine`
+      : `Higher than the quiet rain\nWe keep walking through the pain\nEvery dream we almost lost\nComes alive at any cost`;
+    if(isBridge) return v === 1
+      ? `When the world goes out of tune\nI will hum a warmer moon`
+      : `If the road begins to fade\nI will sing us through the shade`;
+    if(isOutro) return v === 1
+      ? `Leave the sorrow, keep the light\nWe are home inside tonight`
+      : `Close the door on yesterday\nCarry love another way`;
+    if(isPre) return v === 1
+      ? `I feel the silence start to break\nOne small step is all I take`
+      : `Hold the breath before the dawn\nSomething new is coming on`;
+    if(isVerse2) return v === 1
+      ? `Past the window, past the rain\nI meet the hope I could not name`
+      : `In the room we used to know\nA hidden light begins to grow`;
+    if(isIntro) return v === 1
+      ? `The evening opens like a letter\nA little light begins to move`
+      : `A quiet road beneath the starlight\nCalls a memory back to bloom`;
+    return v === 1
+      ? `I follow echoes through the doorway\nAnd find a heart I almost left behind`
+      : `The morning waits beyond the curtain\nWith every word I never tried`;
+  }
+
+  if(lang === "japanese"){
+    if(isChorus) return pick([
+      `もう一度 空へ向かう\n小さな夢を 抱きしめて\n迷いの夜を 越えながら\n胸の光が 歌になる`,
+      `新しい風が 吹いてくる\n涙の跡も 星になる\n君と歩いた この道で\n明日の声を 聞いている`,
+      `遠回りした 願いさえ\nやわらかな音に 変わってく\n震える手を 離さずに\n夜明けの先へ 走り出す`,
+      `名前のない 希望だけを\n胸の奥で 温めて\n壊れそうな 時間さえ\n未来の歌に ほどけてく`,
+      `光る街を 振り返れば\n失くした声が 戻ってくる\n君がくれた その笑顔で\n僕らはまた 強くなる`
+    ]);
+    if(isBridge) return pick([
+      `世界が静かに揺れても\n心の灯りを 信じてる`,
+      `遠い影が近づいても\n君の声が 道になる`,
+      `言葉にできない痛みも\nやがて優しい雨になる`,
+      `迷い込んだ夜の中で\n小さな答えが息をする`,
+      `こぼれ落ちた涙さえ\n明日を照らす星になる`
+    ]);
+    if(isOutro) return pick([
+      `そっと笑って 振り向けば\n優しい朝が 待っている`,
+      `昨日を胸に 抱きしめて\n新しい空へ 歩き出す`,
+      `静かな風に 手を振って\n物語は続いてく`,
+      `最後の余韻を 抱いたまま\n僕らは朝へ 帰ってく`,
+      `淡い光が 満ちる頃\n願いはそっと 花になる`
+    ]);
+    if(isPre) return pick([
+      `息をひそめた その瞬間\n小さな勇気が 目を覚ます`,
+      `扉の向こう 光が差し\n止まった時間が 動き出す`,
+      `胸の鼓動が 速くなる\nまだ見ぬ明日を 呼んでいる`,
+      `震える声を 受け止めて\n一歩だけ前へ 進みたい`,
+      `ほどけた迷いの その先で\n新しい僕に 出会うから`
+    ]);
+    if(isVerse2) return pick([
+      `雨上がりの 窓の向こう\n名もない希望が 咲いていく`,
+      `懐かしい部屋の 片隅で\n忘れた夢を 見つけ出す`,
+      `遠い記憶を たどるたび\n優しい理由が 見えてくる`,
+      `すれ違った 時間さえ\nこの手の中で 光になる`,
+      `沈む夕日に 問いかける\n本当の声を 聞かせてよ`
+    ]);
+    if(isIntro) return pick([
+      `夕暮れが 手紙のように\n静かな光を 運んでくる`,
+      `星明かりの 道の先で\n眠った記憶が 花になる`,
+      `淡い朝霧が ほどけて\n新しい物語が 目を覚ます`,
+      `風の音だけが 残る場所\n胸の奥で 願いが揺れる`,
+      `遠くの空が 色づいて\n小さな予感が 歩き出す`
+    ]);
+    return pick([
+      `戸惑いを越えて 歩き出す\n置き去りの心を 抱きしめて`,
+      `カーテンの向こう 朝が待つ\n言えなかった言葉が 響いてる`,
+      `知らない景色に 手を伸ばし\n昨日の涙を ほどいてく`,
+      `揺れる光を 追いかけて\n胸の答えを 探してる`,
+      `静かな奇跡が 近づいて\n忘れた笑顔を 呼び覚ます`
+    ]);
+  }
+
+  if(lang === "ko_jp"){
+    if(isChorus) return pick([
+      `다시 빛이 번져와\n君の声が 道になる\n작은 꿈을 안고서\n明日へ 걸어가`,
+      `손을 잡고 걸어가\n小さな光 信じて\n흔들리는 마음도\n星のように 피어나`,
+      `멀어진 꿈도 돌아와\n涙の跡が 花になる\n끝나지 않은 노래로\n未来へ 달려가`,
+      `마음 끝에 불이 켜져\n名前のない 希望を抱いて\n어제보다 더 가까이\n君と笑いたい`,
+      `밤을 넘어 숨을 쉬어\n新しい風が 吹いてくる\n작은 용기 하나로\n明日を 열어가`
+    ]);
+    if(isBridge) return pick([
+      `어둠이 깊어져도\n心の灯り 믿고 있어`,
+      `길을 잃은 순간에도\n君の声が 나를 불러`,
+      `말하지 못한 상처도\nやがて優しい雨になる`,
+      `흔들리는 밤의 끝에서\n小さな答え가 숨을 쉬어`,
+      `눈물의 조각마저\n星のように 길을 밝혀`
+    ]);
+    if(isOutro) return pick([
+      `노을 아래 웃으며\n優しい朝へ 걸어가`,
+      `어제를 품에 안고\n新しい空へ 나아가`,
+      `마지막 바람에 손 흔들며\n物語は 계속돼`,
+      `고요한 빛을 안고서\n僕らは朝へ 돌아가`,
+      `희미한 햇살이 번질 때\n願いは 꽃이 돼`
+    ]);
+    if(isPre) return pick([
+      `숨을 고른 그 순간\n小さな勇気 깨어나`,
+      `문 너머 빛이 오면\n止まった 시간도 움직여`,
+      `떨리는 심장 소리가\nまだ見ぬ明日를 불러`,
+      `작은 목소리를 믿고\n一歩だけ 앞으로 가`,
+      `흩어진 망설임 끝에\n新しい 내가 기다려`
+    ]);
+    if(isVerse2) return pick([
+      `비가 그친 창밖으로\n名もない 희망이 피어나`,
+      `익숙한 방 한가운데\n忘れた夢을 다시 만나`,
+      `오래된 기억을 따라가\n優しい理由를 찾아내`,
+      `스쳐간 시간까지\nこの手の中で 빛이 돼`,
+      `저무는 하늘에 물어봐\n本当の声를 들려줘`
+    ]);
+    if(isIntro) return pick([
+      `저녁빛이 편지처럼\n静かな光을 데려와`,
+      `별빛 아래 길 끝에서\n眠った 기억이 꽃이 돼`,
+      `옅은 안개가 풀리면\n新しい物語가 깨어나`,
+      `바람 소리만 남은 곳\n胸の奥で 소원이 흔들려`,
+      `먼 하늘이 물들어가\n小さな予感이 걸어와`
+    ]);
+    return pick([
+      `망설임을 넘어 걸어가\n置き去りの 마음을 안고서`,
+      `커튼 너머 아침이 와\n言えなかった 말이 울려`,
+      `낯선 풍경에 손을 뻗어\n昨日の涙를 풀어내`,
+      `흔들리는 빛을 따라가\n胸の答え를 찾고 있어`,
+      `고요한 기적이 다가와\n忘れた笑顔를 깨워줘`
+    ]);
+  }
+
+  if(lang === "bilingual"){
+    if(isChorus) return pick([
+      `다시 빛나, we rise tonight\n작은 마음 turns into light\n멀어져도 stay with me\n우리 노래가 길이 돼`,
+      `손을 잡아, don't let go\n흔들려도 we still glow\n같은 꿈을 sing with me\nEvery step becomes a key`,
+      `끝나지 않아, feel the spark\n어둠 속도 leaves a mark\n넘어져도 we begin\n작은 용기 rising in`,
+      `멀리 번져, brighter days\n우리 마음 finds a way\n낯선 길도 melody\nTogether we are free`,
+      `다시 뛰어, heart on fire\n조금 더 높이, lift me higher\n흔들린 밤 지나가\nWe become the morning star`
+    ]);
+    if(isBridge) return pick([
+      `어둠 속에 I hear your voice\n다시 선택해 this little choice`,
+      `길을 잃어도 I won't hide\n네 목소리가 stays inside`,
+      `말 못한 꿈이 calls my name\n상처마저 turns to flame`,
+      `고요한 밤을 cross the line\n작은 믿음 starts to shine`,
+      `눈물 뒤에 open sky\nWe learn again how to fly`
+    ]);
+    if(isOutro) return pick([
+      `마지막 빛이 우리를 감싸\nWe carry love into the dawn`,
+      `조용히 웃는 이 순간처럼\nWe find a place where we belong`,
+      `끝의 끝에서 다시 만나\nTomorrow sings another song`,
+      `남겨진 숨을 안고서\nWe walk into a softer sun`,
+      `희미한 빛이 번질 때\nOur story keeps moving on`
+    ]);
+    if(isPre) return pick([
+      `숨을 고르고 one more time\n작은 떨림 becomes a sign`,
+      `문이 열리고 here we go\n마음속 빛이 starts to grow`,
+      `떨리는 손을 hold it tight\n두려움도 turns to light`,
+      `한 걸음 앞에 hear the sound\n잃어버린 꿈을 found`,
+      `멈춘 시간이 starts to run\n새로운 내가 meets the sun`
+    ]);
+    if(isVerse2) return pick([
+      `어제의 문을 지나서\nI say the words I couldn't say`,
+      `익숙한 방의 끝에서\nI find the dream I gave away`,
+      `비가 그친 거리에서\nI see the hope we tucked away`,
+      `오래된 기억 사이로\nThe quiet truth begins to stay`,
+      `저무는 하늘 아래서\nI let the hidden feeling play`
+    ]);
+    if(isIntro) return pick([
+      `${k.place} 위로 light is falling\n잠든 마음이 깨어나`,
+      `${k.light} 아래 we remember\n작은 약속이 숨을 쉬어`,
+      `조용한 바람 passing by\n작은 예감 wakes inside`,
+      `먼 하늘 아래 softly now\n새로운 하루 calls somehow`,
+      `고요한 순간 in my heart\n작은 이야기가 starts`
+    ]);
+    return pick([
+      `${k.symbol}처럼 shining slowly\nI turn my fear into a song`,
+      `${k.feeling} 안에 walking softly\nWe make the silence sing along`,
+      `낯선 길 위로 moving gently\nI find the courage all along`,
+      `흔들린 마음 breathing slowly\nTonight becomes a warmer song`,
+      `숨겨둔 꿈이 blooming softly\nWe keep the light and carry on`
+    ]);
+  }
+
+  if(isChorus) return v === 1
+    ? `다시 빛나 우리 마음\n멀어진 꿈도 돌아와\n흔들려도 괜찮아\n이 순간이 노래가 돼`
+    : `손을 잡고 걸어가\n작은 빛을 따라가\n말 못 했던 마음까지\n오늘 밤에 피어나`;
+  if(isBridge) return v === 1
+    ? `어둠이 깊어져도\n너의 목소릴 따라가`
+    : `길을 잃은 마음도\n다시 별빛을 찾아가`;
+  if(isOutro) return v === 1
+    ? `마지막 빛이 남아서\n우리의 하루를 감싸`
+    : `조용히 웃는 얼굴로\n새로운 아침을 만나`;
+  if(isPre) return v === 1
+    ? `숨을 고르고 다시 한 번\n작은 용기가 깨어나`
+    : `문이 열리는 그 순간\n마음속 빛이 번져가`;
+  if(isVerse2) return v === 1
+    ? `익숙한 길을 지나서\n말 못 한 꿈을 꺼내고`
+    : `오래된 방 한가운데\n숨겨둔 마음을 만나`;
+  if(isIntro) return v === 1
+    ? `${k.place} 위로 바람이 지나\n잠든 마음이 깨어나`
+    : `${k.light} 아래 조용한 순간\n작은 약속이 숨을 쉬어`;
+  return v === 1
+    ? `${k.symbol}처럼 빛나는 마음\n두려움을 노래로 바꿔`
+    : `${k.feeling} 속에 걷는 우리\n침묵까지 노래가 돼`;
+}
+
+function buildSunoLyrics(lang, length, d, plan, variant = 0){
+  const sections = getSongSectionsByLength(length);
+  const k = getStoryKeywords(d, plan);
+  return sections.map(section => {
+    const lines = variant ? makeVariantSectionLines(section, lang, k, variant) : makeSectionLines(section, lang, k);
+    return `[${section}]\n${lines}`;
+  }).join("\n\n");
+}
+
+function generateSunoLyrics(variant = 0){
+  try{
+    generateAll();
+  }catch(e){
+    console.warn("generateAll skipped before SUNO output", e);
+  }
+  const source = getSunoSourceData();
+  const d = source.d;
+  const plan = source.plan;
+  const sunoStyle = $("sunoStyleInput") ? $("sunoStyleInput").value.trim() : "발라드";
+  const sunoBpm   = $("sunoBpmInput")   ? $("sunoBpmInput").value.trim() : "80";
+  const sunoLang  = $("sunoLangSelect") ? $("sunoLangSelect").value : "korean";
+  const sunoLength = $("sunoLengthSelect") ? $("sunoLengthSelect").value : "60초";
+  const finalLength = sunoLength === "영상 길이에 맞춤" ? d.runtime : sunoLength;
+
+  const btn    = $("sunoGenBtn");
+  const btnTxt = $("sunoGenBtnText");
+  const status = $("sunoGenStatus");
+  const wrap   = $("sunoResultWrap");
+
+  if(btnTxt) btnTxt.textContent = "⏳ 출력 중...";
+  if(btn) btn.disabled = true;
+  if(status){
+    status.style.display = "block";
+    status.style.color   = "#93c5fd";
+    status.textContent   = "🎵 시놉시스와 스토리보드를 음악 구조로 변환 중입니다...";
+  }
+  if(wrap) wrap.style.display = "none";
+
+  try{
+    sunoGeneratedData = {
+      style:  normalizeSunoStyle(sunoStyle, sunoBpm, finalLength, d.mood),
+      title:  `${d.topic || "Untitled"} (${getSunoLangLabel(sunoLang)})`,
+      lyrics: buildSunoLyrics(sunoLang, finalLength, d, plan, variant)
+    };
+
+    if($("sunoStyleResult")) $("sunoStyleResult").textContent  = sunoGeneratedData.style;
+    if($("sunoTitleResult")) $("sunoTitleResult").textContent  = sunoGeneratedData.title;
+    if($("sunoLyricsResult")) $("sunoLyricsResult").textContent = sunoGeneratedData.lyrics;
+
+    if(wrap) wrap.style.display  = "block";
+    if(status){
+      status.style.color  = "#4ade80";
+      status.textContent  = "✅ 가사 출력 완료!";
+    }
+
+  } catch(err){
+    if(status){
+      status.style.display = "block";
+      status.style.color  = "#f87171";
+      status.textContent  = "❌ " + err.message;
+    }
+    console.error("SUNO error:", err);
+  } finally {
+    if(btnTxt) btnTxt.textContent = "🎵 가사 출력";
+    if(btn) btn.disabled = false;
+  }
+}
+
+function regenerateSunoLyrics(){
+  sunoRegenerateCount += 1;
+  const status = $("sunoGenStatus");
+  if(status){
+    status.style.display = "block";
+    status.style.color = "#93c5fd";
+    status.textContent = `🔄 다시 출력 중... (${sunoRegenerateCount})`;
+  }
+  generateSunoLyrics(sunoRegenerateCount);
+  if(status && sunoGeneratedData && sunoGeneratedData.lyrics){
+    status.style.color = "#4ade80";
+    status.textContent = `✅ 다시 출력 완료! (${sunoRegenerateCount})`;
+  }
+}
+
+/* 텍스트에서 섹션 추출 헬퍼 */
+function extractSection(text, startKey, endKey){
+  const si = text.indexOf(startKey);
+  if(si === -1) return null;
+  const start = si + startKey.length;
+  const ei = endKey ? text.indexOf(endKey, start) : -1;
+  const raw = (ei === -1 ? text.slice(start) : text.slice(start, ei)).trim();
+  return raw.replace(/^[":\s]+|["]+$/g,"").trim() || null;
+}
+
+function copySunoStyle(){
+  writeClipboard(sunoGeneratedData.style||"", "스타일 복사 완료");
+}
+function copySunoTitle(){
+  writeClipboard(sunoGeneratedData.title||"", "제목 복사 완료");
+}
+function copyAllSuno(){
+  const text = `[SUNO STYLE]\n${sunoGeneratedData.style}\n\n[TITLE]\n${sunoGeneratedData.title}\n\n[LYRICS]\n${sunoGeneratedData.lyrics}`;
+  writeClipboard(text, "전체 복사 완료");
+}
+
+function openExternalLink(url){
+  try{
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }catch(e){
+    console.warn("new tab open failed, using same tab", e);
+  }
+  setTimeout(() => {
+    try{
+      if(document.visibilityState !== "hidden"){
+        window.location.href = url;
+      }
+    }catch(err){
+      console.error(err);
+      toast("링크 열기 실패");
+    }
+  }, 120);
+}
+function openSuno(){ openExternalLink("https://suno.com/"); }
+function openGPT(){  openExternalLink("https://chatgpt.com/"); }
+
+window.addEventListener("load",()=>{ try{loadInputs();}catch(e){} setupRuntimeAutoCut(); generateAll(); });
+</script>
+</body>
+</html>
